@@ -4,11 +4,13 @@ Go Library for Installing Executables. What [ghpm](https://github.com/meop/ghpm)
 and [gotm](https://github.com/meop/gotm) share: the parts of a tool that
 installs other tools, and keeps itself and its own helpers current.
 
+## Install
+
 ```sh
 go get github.com/meop/golie
 ```
 
-## Packages
+## Usage
 
 | Package | What it is |
 |---------|------------|
@@ -32,6 +34,14 @@ it. `cmd/pin` prints the entry for one archive:
 
 ```sh
 go run github.com/meop/golie/cmd/pin -url https://github.com/meop/sheesh/releases/download/v0.1.1/sheesh-0.1.1-linux-x86_64.tar.gz kebab sheesh
+```
+
+## Verifying releases
+
+A release is a GPG-signed tag. Verify it with the public release key:
+
+```sh
+git verify-tag v0.1.1
 ```
 
 ## License

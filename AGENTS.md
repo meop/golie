@@ -15,6 +15,16 @@ gofmt -w .
 golangci-lint run ./...
 ```
 
+## Keeping this file current
+
+Update this file whenever a package is added, removed or renamed, or a
+convention changes — do not wait to be asked. Keep descriptions conceptual:
+what a package is for and what it guarantees, not function signatures. If you
+notice a discrepancy between this file and the code, fix the file immediately.
+
+Update `README.md` when what a tool built on golie can rely on changes: a
+package added or removed, or a guarantee one makes.
+
 ## Publishing
 
 To cut a release: bump the version in `VERSION` and push to `main`. The CI
@@ -27,7 +37,7 @@ by hand.
 
 A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
 
-## Packages
+## Project structure
 
 - `fetch/` — `Download` hashes as it writes and removes a file that does not
   match; `Extract` unpacks `.tar.gz` and `.zip` with a strip count, and fails

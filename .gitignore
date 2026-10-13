@@ -1,0 +1,16 @@
+# Test / coverage
+*.out
+*.prof
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependencies (go.sum is tracked)
+/vendor/

@@ -17,7 +17,7 @@ go get github.com/meop/golie
 | `sheesh` | The pinned [sheesh](https://github.com/meop/sheesh) release shims are stamped with |
 | `shim` | Stamps and removes sheesh shims, and tells a tool's own from anything else on `PATH` |
 | `upgrade` | A tool upgrading itself from its GitHub releases, over plain https |
-| `version` | Version strings, pins (`14`, `14.1`, `14.1.0`) and comparison |
+| `vers` | Version strings, pins (`14`, `14.1`, `14.1.0`) and comparison |
 | `ui` | One sink for output and prompts, with deferred blank lines |
 | `lock` | The one-process-at-a-time lock over a tool's state directory |
 | `home` | The user's home, with a guard that keeps tests out of the real one |

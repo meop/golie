@@ -43,7 +43,7 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
 - `upgrade/` — `Self` reads the newest release from where `releases/latest`
   redirects, checks the archive against the release's `SHA256SUMS`, and
   replaces the running binary
-- `version/` — `SplitJunk` / `Normalize` for tags with leading junk, and
+- `vers/` — `SplitJunk` / `Normalize` for tags with leading junk, and
   `Constraint` for pins
 - `ui/` — deferred separators; see the comments in `ui.go`
 - `lock/`, `home/` — small, and what their package comments say
@@ -62,6 +62,10 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   version string does not. `.pin` in the directory records the version last
   synced only so a wrong copy of *this* version can be told from an ordinary
   copy of another, and said (`Options.Replacing`); it is never trusted
+- No file or directory at the module root may differ from another only by
+  case. Go refuses a module that has one — 0.1.0 shipped a `version` package
+  beside the `VERSION` file and could not be fetched at all, which is why the
+  package is `vers`
 - A package takes the paths and names it needs as arguments. Nothing here
   knows a tool's name or where its state lives
 

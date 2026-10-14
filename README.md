@@ -20,6 +20,10 @@ go get github.com/meop/golie
 | `shim` | Stamps and removes sheesh shims, and tells a tool's own from anything else on `PATH` |
 | `upgrade` | A tool upgrading itself from its GitHub releases, over plain https |
 | `vers` | Version strings, pins (`14`, `14.1`, `14.1.0`) and comparison |
+| `manifest` | The record of what is installed: one JSON file, keyed `name` or `name@pin`, the same for every tool |
+| `layout` | Where a tool's state lives: `bin`, `vendor`, `extract/<key>/<version>`, `download/<source>/<version>` |
+| `journal` | All-or-nothing installs: every step recorded with its undo, rolled back unless the manifest was written |
+| `tidy` | Finds and removes broken installs and orphaned shims, extract dirs and downloads |
 | `ui` | One sink for output and prompts, with deferred blank lines |
 | `lock` | The one-process-at-a-time lock over a tool's state directory |
 | `home` | The user's home, with a guard that keeps tests out of the real one |

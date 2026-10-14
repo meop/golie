@@ -1,0 +1,77 @@
+// Package layout names the directories of a tool's state directory
+// (~/.ghpm, ~/.gotm). Both tools lay theirs out the same way, which is what
+// lets one tidy clean either.
+//
+//	bin/                          the tool and its shims; the one dir on PATH
+//	vendor/sheesh/                kebab and its templates; never on PATH
+//	extract/<key>/<version>/      one install, unpacked
+//	download/<source>/<version>/  the release assets it was unpacked from
+//	manifest.json, .lock
+package layout
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/meop/golie/vers"
+)
+
+// Layout is a state directory rooted at Root.
+type Layout struct{ Root string }
+
+func (l Layout) made(elems ...string) (string, error) {
+	dir := filepath.Join(append([]string{l.Root}, elems...)...)
+	return dir, os.MkdirAll(dir, 0755)
+}
+
+// ManifestPath is the manifest file.
+func (l Layout) ManifestPath() string { return filepath.Join(l.Root, "manifest.json") }
+
+// LockPath is the file the tool's one-process-at-a-time lock is held on.
+func (l Layout) LockPath() string { return filepath.Join(l.Root, ".lock") }
+
+// BinDir holds the tool itself and the shims it stamps: everything meant to
+// be on the user's PATH. It is created.
+func (l Layout) BinDir() (string, error) { return l.made("bin") }
+
+// VendorDir holds the tools the tool needs to work, not the ones it installs
+// for you. Nothing here belongs on PATH. It is created.
+func (l Layout) VendorDir() (string, error) { return l.made("vendor") }
+
+// ShimDir holds sheesh's kebab stamper and its templates. It is created.
+func (l Layout) ShimDir() (string, error) { return l.made("vendor", "sheesh") }
+
+// ExtractsDir is where installs are unpacked. It is not created: it existing
+// says something was installed.
+func (l Layout) ExtractsDir() string { return filepath.Join(l.Root, "extract") }
+
+// ExtractBaseDir holds every version of one install.
+func (l Layout) ExtractBaseDir(key string) string { return filepath.Join(l.ExtractsDir(), key) }
+
+// ExtractPath is where one version of one install is unpacked, whether or not
+// it is there.
+func (l Layout) ExtractPath(key, version string) string {
+	return filepath.Join(l.ExtractBaseDir(key), version)
+}
+
+// ExtractDir is ExtractPath, created.
+func (l Layout) ExtractDir(key, version string) (string, error) {
+	dir := l.ExtractPath(key, version)
+	return dir, os.MkdirAll(dir, 0755)
+}
+
+// DownloadsDir is the cache of release assets. It is not created.
+func (l Layout) DownloadsDir() string { return filepath.Join(l.Root, "download") }
+
+// DownloadDir holds the assets of one release of one source. It is created.
+func (l Layout) DownloadDir(source, version string) (string, error) {
+	dir := filepath.Join(l.DownloadsDir(), SourceToRelPath(source), vers.Normalize(version))
+	return dir, os.MkdirAll(dir, 0755)
+}
+
+// SourceToRelPath turns a source ("github.com/owner/repo") into a relative
+// filesystem path.
+func SourceToRelPath(source string) string {
+	return strings.ReplaceAll(source, "/", string(filepath.Separator))
+}

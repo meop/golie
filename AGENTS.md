@@ -55,6 +55,22 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   replaces the running binary
 - `vers/` — `SplitJunk` / `Normalize` for tags with leading junk, and
   `Constraint` for pins
+- `manifest/` — the record of what a tool installed, and the one file both
+  tools keep: `repo` (package name → source) and `extract` (key → pin level,
+  version, assets, and the shim → binary and font maps). Also what a key is
+  (`fzf`, `fzf@14`), the pin level a pin holds an install to, and what a
+  pinned install's shim is called. Its JSON field names are a contract: a
+  change to one is a change to every `~/.ghpm` and `~/.gotm` in use
+- `layout/` — the directories of a state directory: `bin`, `vendor`,
+  `extract/<key>/<version>`, `download/<source>/<version>`, the manifest and
+  the lock
+- `journal/` — what makes an install all or nothing: each mutation recorded
+  with its undo before it is made, rolled back newest first when the op fails
+  short of the manifest write
+- `tidy/` — finds what the manifest does not account for (shims, extract
+  dirs, cached downloads) and what it claims that is gone (broken installs),
+  and removes either. No output and no prompts: the tool shows what a `Find`
+  returned and asks
 - `ui/` — deferred separators; see the comments in `ui.go`
 - `lock/`, `home/` — small, and what their package comments say
 - `cmd/pin/` — prints a `pinned.Asset` entry for an archive URL
@@ -77,7 +93,11 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   beside the `VERSION` file and could not be fetched at all, which is why the
   package is `vers`
 - A package takes the paths and names it needs as arguments. Nothing here
-  knows a tool's name or where its state lives
+  knows a tool's name or where its state lives, nor what a package is: gotm's
+  only one is `go`, and it passes that where ghpm passes a name
+- The backend is here and the conversation is not. What a tool prints, asks
+  and names its commands stays in the tool; `manifest`, `layout`, `journal`
+  and `tidy` never print or prompt
 
 ## Bumping sheesh
 

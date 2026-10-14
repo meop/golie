@@ -52,7 +52,10 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   replaces or removes a file it can tell is one of its own
 - `upgrade/` — `Self` reads the newest release from where `releases/latest`
   redirects, checks the archive against the release's `SHA256SUMS`, and
-  replaces the running binary
+  replaces the running binary. A tool that names `Dir`, where its installer
+  puts it, upgrades only the copy there: one that runs from anywhere else is
+  refused (`Check`, a `NotSelfInstalledError` the tool says in its own words)
+  before anything is fetched, since whatever put it there is what upgrades it
 - `vers/` — `SplitJunk` / `Normalize` for tags with leading junk, and
   `Constraint` for pins
 - `manifest/` — the record of what a tool installed, and the one file both

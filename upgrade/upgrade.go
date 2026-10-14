@@ -5,6 +5,12 @@
 // CLI. The newest release is read from where the release page's "latest"
 // address redirects, and an archive is checked against that release's own
 // SHA256SUMS before the running binary is replaced.
+//
+// A tool that names the directory its installer puts it in upgrades only the
+// copy there. One that runs from anywhere else was put there by something
+// else — a package manager, go install, a build — and that is what upgrades
+// it: replacing it in place would leave whatever installed it describing a
+// binary that is no longer the one it installed.
 package upgrade
 
 import (
@@ -30,12 +36,38 @@ type Self struct {
 	// ReleasesURL is the tool's release page with a trailing slash:
 	// "https://github.com/<owner>/<repo>/releases/".
 	ReleasesURL string
+	// Dir is the directory the tool's own installer puts it in, and the only
+	// place it upgrades itself from. Leave it empty for a tool that upgrades
+	// wherever it runs.
+	Dir string
 	// Path returns the running binary. Leave it nil for the process's own
 	// executable; a test names a file of its own.
 	Path func() (string, error)
 }
 
-func (s Self) path() (string, error) {
+// NotSelfInstalledError is a tool refusing to upgrade a copy of itself that
+// its own installer did not place.
+type NotSelfInstalledError struct {
+	// Running is the binary that was asked to upgrade, and Installed where
+	// its installer would have put it.
+	Running, Installed string
+}
+
+func (e *NotSelfInstalledError) Error() string {
+	return fmt.Sprintf("not self installed: running from %s, not %s", e.Running, e.Installed)
+}
+
+// Check says whether the running binary is one Install may replace: any, for
+// a tool that names no Dir, and otherwise only the one in Dir, however it was
+// reached. It is a *NotSelfInstalledError when not, for the tool to say in
+// its own words. It asks nothing of the network, so a tool calls it before it
+// asks which release is newest.
+func (s Self) Check() error {
+	_, err := s.path()
+	return err
+}
+
+func (s Self) running() (string, error) {
 	if s.Path != nil {
 		return s.Path()
 	}
@@ -44,6 +76,32 @@ func (s Self) path() (string, error) {
 		return "", err
 	}
 	return filepath.EvalSymlinks(self)
+}
+
+// path is the running binary, once it is known to be the one in Dir.
+func (s Self) path() (string, error) {
+	self, err := s.running()
+	if err != nil || s.Dir == "" {
+		return self, err
+	}
+	installed := filepath.Join(s.Dir, exeName(s.Name))
+	if !sameFile(self, installed) {
+		return "", &NotSelfInstalledError{Running: self, Installed: installed}
+	}
+	return self, nil
+}
+
+// sameFile says whether two paths name one file. It is asked of the files
+// and not their names, so a symlink to the installed binary, or a path spelt
+// in another case on Windows, is still that binary; a path with nothing at it
+// is no file at all.
+func sameFile(a, b string) bool {
+	ai, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	bi, err := os.Stat(b)
+	return err == nil && os.SameFile(ai, bi)
 }
 
 func exeName(name string) string {
@@ -87,16 +145,16 @@ func (s Self) Asset(tag string) string {
 
 // Install fetches release tag's archive for this machine, checks it against
 // the release's own checksum manifest, and puts the binary in it where the
-// running one is. fetching, when not nil, is called with the archive's name
-// just before the download.
+// running one is. Nothing is fetched for a copy Check refuses. fetching, when
+// not nil, is called with the archive's name just before the download.
 func (s Self) Install(ctx context.Context, tag string, fetching func(asset string)) error {
-	base := s.ReleasesURL + "download/" + tag + "/"
-	asset := s.Asset(tag)
-	sum, err := releaseChecksum(ctx, base+"SHA256SUMS", asset)
+	self, err := s.path()
 	if err != nil {
 		return err
 	}
-	self, err := s.path()
+	base := s.ReleasesURL + "download/" + tag + "/"
+	asset := s.Asset(tag)
+	sum, err := releaseChecksum(ctx, base+"SHA256SUMS", asset)
 	if err != nil {
 		return err
 	}

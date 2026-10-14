@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -121,5 +122,82 @@ func TestInstallSelfRefusesAnArchiveThatDoesNotMatchItsChecksum(t *testing.T) {
 	}
 	if got, _ := os.ReadFile(self); string(got) != "old gotm" {
 		t.Errorf("the running binary was replaced by an archive that failed its check: %q", got)
+	}
+}
+
+// installedSelf is fakeSelf where an installer put it: in dir, under the
+// tool's name.
+func installedSelf(t *testing.T, dir string) string {
+	t.Helper()
+	self := filepath.Join(dir, exeName("tool"))
+	if err := os.WriteFile(self, []byte("old gotm"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	return self
+}
+
+func TestInstallSelfReplacesTheCopyItsInstallerPlaced(t *testing.T) {
+	dir := t.TempDir()
+	self := installedSelf(t, dir)
+	archive := selfArchive(t, "new gotm")
+	sum := sha256.Sum256(archive)
+	s := serveReleases(t, "v1.2.3", archive, hex.EncodeToString(sum[:]))
+	s.Dir = dir
+	s.Path = func() (string, error) { return self, nil }
+
+	if err := s.Check(); err != nil {
+		t.Fatalf("the copy in Dir was refused: %v", err)
+	}
+	if err := s.Install(context.Background(), "v1.2.3", nil); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(self); string(got) != "new gotm" {
+		t.Errorf("the running binary is %q", got)
+	}
+}
+
+// a copy that runs from anywhere but Dir belongs to whatever put it there,
+// whether or not the installer's own copy is also on the machine
+func TestInstallSelfRefusesACopyItsInstallerDidNotPlace(t *testing.T) {
+	for name, alsoInstalled := range map[string]bool{"alone": false, "beside an installed copy": true} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			if alsoInstalled {
+				installedSelf(t, dir)
+			}
+			elsewhere := fakeSelf(t)
+			s := Self{Name: "tool", ReleasesURL: "http://127.0.0.1:0/", Dir: dir}
+			s.Path = func() (string, error) { return elsewhere, nil }
+
+			var refused *NotSelfInstalledError
+			if err := s.Check(); !errors.As(err, &refused) {
+				t.Fatalf("Check = %v, want a NotSelfInstalledError", err)
+			}
+			if refused.Running != elsewhere || refused.Installed != filepath.Join(dir, exeName("tool")) {
+				t.Errorf("the refusal names %q and %q", refused.Running, refused.Installed)
+			}
+			// the release page is not there to be asked: a refusal that
+			// reached for it would be some other error
+			if err := s.Install(context.Background(), "v1.2.3", nil); !errors.As(err, &refused) {
+				t.Fatalf("Install = %v, want a NotSelfInstalledError", err)
+			}
+			if got, _ := os.ReadFile(elsewhere); string(got) != "old gotm" {
+				t.Errorf("a copy the installer did not place was replaced: %q", got)
+			}
+		})
+	}
+}
+
+// the installed binary reached through a symlink is still the installed binary
+func TestCheckFollowsASymlinkToTheInstalledCopy(t *testing.T) {
+	dir := t.TempDir()
+	self := installedSelf(t, dir)
+	link := filepath.Join(t.TempDir(), exeName("tool"))
+	if err := os.Symlink(self, link); err != nil {
+		t.Skipf("no symlinks here: %v", err)
+	}
+	s := Self{Name: "tool", Dir: dir, Path: func() (string, error) { return link, nil }}
+	if err := s.Check(); err != nil {
+		t.Errorf("a symlink to the installed copy was refused: %v", err)
 	}
 }

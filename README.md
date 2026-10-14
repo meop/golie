@@ -18,7 +18,7 @@ go get github.com/meop/golie
 | `pinned` | Keeps a vendored helper at exactly the release a build pins, checked by content every time it is used |
 | `sheesh` | The pinned [sheesh](https://github.com/meop/sheesh) release shims are stamped with |
 | `shim` | Stamps and removes sheesh shims, and tells a tool's own from anything else on `PATH` |
-| `upgrade` | A tool upgrading itself from its GitHub releases, over plain https |
+| `upgrade` | A tool upgrading itself from its GitHub releases, over plain https, and only the copy its own installer placed |
 | `vers` | Version strings, pins (`14`, `14.1`, `14.1.0`) and comparison |
 | `manifest` | The record of what is installed: one JSON file, keyed `name` or `name@pin`, the same for every tool |
 | `layout` | Where a tool's state lives: `bin`, `vendor`, `extract/<key>/<version>`, `download/<source>/<version>` |

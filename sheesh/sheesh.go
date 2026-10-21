@@ -14,7 +14,7 @@ import (
 // exactly this before it is used, and bumping it here, with the digests
 // below, is the only way it moves: it is the tool's internals, not something
 // its user chose to install.
-const Version = "0.1.1"
+const Version = "0.2.0"
 
 // ReleaseBase is where sheesh's releases are downloaded from: a plain release
 // download addressed by the pinned version, not the GitHub API. It is a var,
@@ -25,12 +25,12 @@ var ReleaseBase = "https://github.com/meop/sheesh/releases/download/"
 // spells in their names: each one's sha256, and that of every file kept from
 // it. `go run ./cmd/pin` prints an entry; see AGENTS.md for bumping the pin.
 var Assets = map[string]pinned.Asset{
-	"linux-x86_64":    {SHA256: "c1a08126ebb3117dd0034ec1ced849c6ef6df3a214f7b4884f07f34ad754de37", Files: map[string]string{"kebab": "1088d3116d0b6827c1d62d3a4dfcd5c1bc85624f535b507ea0d0e7aec30fc578", "sheesh": "3083131e230c9a7488a32492cd7c0cb845f290369744e9fe4255770ca06b659b"}},
-	"linux-aarch64":   {SHA256: "1552842af9e910f56fa45c7b6197086b784c3db1826cc3e8b4e1648d3ce885e9", Files: map[string]string{"kebab": "dd7bf5a2f4a7ba7b43d651b81e5263c0bb2640659ed4a080bcd7da64455b8c46", "sheesh": "7626255a96786561a090532d6ca70633f2dfd7ac75824caf182cfce0cad5db5e"}},
-	"darwin-x86_64":   {SHA256: "8d5f0d09974f2208195c26bd8960ef0c10bc8207f617bea3a95ccb2cf98ce8bc", Files: map[string]string{"kebab": "5438270d53ab96dcc455011f7b75625b0a3de23bb22c83cf5b24fe221debc818", "sheesh": "11d6fea1822888bfca6c34c6b0e3774f3be9688806b1542be6ce78bb79f521f4"}},
-	"darwin-aarch64":  {SHA256: "3c697949bcdaa32707adb06e803a3875f41b61e191e0e8beba7a4e62c204b87b", Files: map[string]string{"kebab": "04c419c78e8326b5c9897060c9ebfd0830c754c52a7e455f8148d03255c54f82", "sheesh": "c224882b4301b9296946164b7fc1045cdc3534b1807a046b5c5ebabec1065558"}},
-	"windows-x86_64":  {SHA256: "d3192a5661090a28278a784f0988df8eaef19c5be96f761b8fe8a7b26f4a3155", Files: map[string]string{"kebab.exe": "a42b54f3e8ebdbbd4df67f816973a89a7bd1b9e100228e70d84bc96a38f06dbd", "sheesh.exe": "4a4bd72c077b1e978f9d1ed69de437bb6ab40df2d7d33cbe41245b1be2f8ba82", "sheesh-gui.exe": "c0c6c39e61d38cac8eb3196aa6d29b4ce1d2e7872d3665edae13da815f0a33bf"}},
-	"windows-aarch64": {SHA256: "9f6ffa11fce29e3ce5a2d796123af7af003a7aad22d8ec97a14263c811d6cd66", Files: map[string]string{"kebab.exe": "bd51d7c51bad273a31f48703576c704b4fbea208f328fb34406e1c4b5e78cb8c", "sheesh.exe": "2850ad5143c9ef2eda39686d6201a19c933b5aca437ade0a9d6f61028891f9a9", "sheesh-gui.exe": "f24524426b478a747f7f54ce640e34955302313e372d866257281e1a2859efc8"}},
+	"linux-x86_64":    {SHA256: "b701a4e8d805c72698b9276105212f550968f10b13aa96ffd4a9e95b2c3896c3", Files: map[string]string{"kebab": "d44a7b9a93af4af68603149cb6a451f52b9c8955247525fc518f45fd270f91da", "sheesh": "95151e7d90b71144c3e33c8c53c8e3f1ac3453527c86f9ddbb6d4046037dd0da"}},
+	"linux-aarch64":   {SHA256: "1c5e7b8379ba00d8b21816d1a1be390bb5845dbe9b5decc8a7dfd4b1b8d3dff0", Files: map[string]string{"kebab": "7b7f4cc0e239aef0dd1c755852c2137440a6c06d5b68bc0a32a06bada437fa2e", "sheesh": "3efa9d1fbc0f261c3f63c920ae588257ca3bbaa9f845eefb439b069f6c0e7779"}},
+	"darwin-x86_64":   {SHA256: "642284b3f565be9eebc11e86022e346638d6a8c91263a1c2009fa3c0e0086f96", Files: map[string]string{"kebab": "11214a6f8b105295e54274851f1514d585784483db1cffbc685130c299b14ae5", "sheesh": "7a7f341b2fb3309981f28f7a913374428fb32b3503e122d502d9b280f82c06ab"}},
+	"darwin-aarch64":  {SHA256: "32a3fc2a7f882568837e9c99f85657c497b720b9ab0ca5b53c0edecd4c47fe9c", Files: map[string]string{"kebab": "de38791c142513b5a3401b22b3481e46d32a03a687243d3e3f9ad9c11e6a8d58", "sheesh": "fcf45d0d374323e15cc95ef01cea3bdc328403a81571e5b21234e1d35a05f97d"}},
+	"windows-x86_64":  {SHA256: "520d947326dcd247648caf5a0f22148cfc46d90f25645087249b2c6e24243af8", Files: map[string]string{"kebab.exe": "3550377085f0c4b938a1d2d8ea896ad6f07638a7cd2c84f9b070e07309a99925", "sheesh.exe": "65348b3e893ba430c63d9ee7e93b7a9ab8701d389f07304dd7cb9038a2786807", "sheesh-gui.exe": "00c750956c357fe553f1458efb2872ab3fee304a71f1b04a66cce8bac386ba5b"}},
+	"windows-aarch64": {SHA256: "41d0b42b8c57df286846a15b9e8e64edf49c61c0b4e8309afa8c79f73dad2f0f", Files: map[string]string{"kebab.exe": "fd6e8ecc7c6b22faab5d563296da5b29efa3d1bda235609f737278004bd29a90", "sheesh.exe": "9ce8f4f51c9dbed53b04d9c8f72323193cbd1cfed39647e65114e55b5615e90b", "sheesh-gui.exe": "41ee77b334ed4b1843df7fce639a9be4141440d0f056834ac479d91f256d31c0"}},
 }
 
 // Tool is the pinned release as it applies to goos/goarch; ok is false where

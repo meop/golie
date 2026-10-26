@@ -188,7 +188,7 @@ func TestConfirm_FlushesPendingBreakBeforePrompt(t *testing.T) {
 	if !Confirm("proceed") {
 		t.Fatal("expected true for y")
 	}
-	if got := buf.String(); got != "a\n\nproceed [y,[n]]: " {
+	if got := buf.String(); got != "a\n\nproceed [[y]/n]: " {
 		t.Errorf("got %q", got)
 	}
 }
@@ -201,7 +201,7 @@ func TestConfirm_NoTrailingBlank(t *testing.T) {
 	Out("a")
 	Confirm("proceed")
 	Out("running")
-	if got := buf.String(); got != "a\n\nproceed [y,[n]]: running\n" {
+	if got := buf.String(); got != "a\n\nproceed [[y]/n]: running\n" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -215,6 +215,20 @@ func TestConfirm_Answers(t *testing.T) {
 		if got := Confirm("ok"); got != c.want {
 			t.Errorf("Confirm(%q) = %v, want %v", c.in, got, c.want)
 		}
+	}
+}
+
+// TestConfirm_NobodyToAnswer asserts a confirm with nobody there is no, whatever
+// the read would have returned: an EOF reads as empty, and empty is yes.
+func TestConfirm_NobodyToAnswer(t *testing.T) {
+	buf := capture(t, "")
+	SetNonInteractive(true)
+	t.Cleanup(func() { SetNonInteractive(false) })
+	if Confirm("remove 3 broken install(s)") {
+		t.Fatal("Confirm with nobody to answer = true, want false")
+	}
+	if got := buf.String(); !strings.Contains(got, "no terminal to answer from") || strings.Contains(got, "[[y]/n]") {
+		t.Errorf("got %q", got)
 	}
 }
 

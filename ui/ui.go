@@ -223,16 +223,24 @@ func Menu(label, header string, items []string) {
 	}
 }
 
-// Confirm prints "msg [y,[n]]: " with a blank line before it but NOT after, and
+// Confirm prints "msg [[y]/n]: " with a blank line before it but NOT after, and
 // returns true for empty, "y", or "yes". Unlike the selection menus, a confirm
 // is the bail point of a gate: whatever follows (the operation's progress lines,
 // or `add`'s shim creation) is the work the user just opted into, so it nests
 // tight under the confirm with no separating blank. The leading Break still
 // flushes any pending separator before the prompt; it just doesn't request a
 // trailing one, so it does not route through Prompt.
+//
+// With nobody to answer (see Interactive) it says so and returns false: a read
+// there hits EOF, and an empty answer is yes, so it would otherwise confirm on a
+// script's behalf. --yes is how a script says yes, and never reaches here.
 func Confirm(msg string) bool {
 	Break()
-	s := strings.ToLower(ReadLine(msg + " [y,[n]]: "))
+	if !Interactive() {
+		Warn("%s: no terminal to answer from, so no; --yes answers yes", msg)
+		return false
+	}
+	s := strings.ToLower(ReadLine(msg + " [[y]/n]: "))
 	return s == "" || s == "y" || s == "yes"
 }
 

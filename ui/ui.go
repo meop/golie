@@ -27,9 +27,11 @@ var ErrSkip = errors.New("skipped")
 
 var (
 	out           io.Writer = os.Stdout
-	in                      = bufio.NewReader(os.Stdin)
-	started       bool      // anything emitted yet
-	pending       bool      // a separator was requested
+	errOut        io.Writer = os.Stderr
+	verbose       bool
+	in            = bufio.NewReader(os.Stdin)
+	started       bool // anything emitted yet
+	pending       bool // a separator was requested
 	colorResolver func(role string) func(string) string
 	// mu guards the separator state and writes so non-prompt output emitted from
 	// parallel workers (e.g. download progress) cannot interleave or race the
@@ -43,6 +45,23 @@ func SetOutput(w io.Writer) {
 	out = w
 	started = false
 	pending = false
+}
+
+// SetErrOutput redirects Verbose's output (tests).
+func SetErrOutput(w io.Writer) { errOut = w }
+
+// SetVerbose turns Verbose's lines on (-v).
+func SetVerbose(v bool) { verbose = v }
+
+// Verbose writes a line to stderr under -v: what a tool does on its own, such
+// as checking and syncing what it vendors, which is otherwise silent.
+func Verbose(format string, args ...any) {
+	if !verbose {
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	_, _ = fmt.Fprintf(errOut, format+"\n", args...)
 }
 
 // SetInput redirects the prompt reader (tests).

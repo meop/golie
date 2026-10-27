@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/meop/golie/fetch"
+	"github.com/meop/golie/ui"
 )
 
 // Asset is the archive of a pinned release for one platform.
@@ -97,14 +98,23 @@ func (t Tool) mismatch(dir string) (file string, ok bool) {
 func Ensure(ctx context.Context, t Tool, dir string, opts Options) error {
 	file, ok := t.mismatch(dir)
 	if ok {
+		ui.Verbose("%s %s: current in %s", t.Name, t.Version, dir)
 		return nil
 	}
 	if len(t.Asset.Files) == 0 {
 		return fmt.Errorf("%s %s pins no files for this platform", t.Name, t.Version)
 	}
-	if opts.Replacing != nil && stampedVersion(dir) == t.Version {
+	had := stampedVersion(dir)
+	if had == "" {
+		had = "none"
+	}
+	ui.Verbose("%s %s: %s has %s, syncing", t.Name, t.Version, dir, had)
+	if had == t.Version {
 		if _, err := os.Stat(filepath.Join(dir, file)); err == nil {
-			opts.Replacing(file)
+			ui.Verbose("%s %s: %s does not match its pin", t.Name, t.Version, file)
+			if opts.Replacing != nil {
+				opts.Replacing(file)
+			}
 		}
 	}
 
@@ -119,6 +129,7 @@ func Ensure(ctx context.Context, t Tool, dir string, opts Options) error {
 	defer func() { _ = os.RemoveAll(work) }()
 
 	archive := filepath.Join(work, filepath.Base(t.Asset.URL))
+	ui.Verbose("%s %s: fetching %s", t.Name, t.Version, t.Asset.URL)
 	if opts.Fetching != nil {
 		opts.Fetching(filepath.Base(archive))
 	}
@@ -162,7 +173,11 @@ func Ensure(ctx context.Context, t Tool, dir string, opts Options) error {
 	if err := sweep(dir, t, opts.Keep); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, stampName), []byte(t.Version+"\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, stampName), []byte(t.Version+"\n"), 0644); err != nil {
+		return err
+	}
+	ui.Verbose("%s %s: installed in %s", t.Name, t.Version, dir)
+	return nil
 }
 
 // sweep removes what dir holds that is neither one of t's files nor kept.

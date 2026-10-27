@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 )
@@ -307,5 +308,23 @@ func TestDecorated_UsesColorResolver(t *testing.T) {
 	Warn("hello %s", "world")
 	if got := buf.String(); got != "<‼ hello world>\n" {
 		t.Errorf("got %q", got)
+	}
+}
+
+func TestVerbose_OnlyUnderVerboseAndOnlyToErrOutput(t *testing.T) {
+	buf := capture(t, "")
+	errBuf := &bytes.Buffer{}
+	SetErrOutput(errBuf)
+	t.Cleanup(func() { SetErrOutput(os.Stderr); SetVerbose(false) })
+
+	Verbose("hidden")
+	SetVerbose(true)
+	Verbose("shown %d", 1)
+
+	if errBuf.String() != "shown 1\n" {
+		t.Errorf("err output = %q, want only the line written under verbose", errBuf.String())
+	}
+	if buf.Len() != 0 {
+		t.Errorf("output = %q, want nothing on stdout", buf.String())
 	}
 }

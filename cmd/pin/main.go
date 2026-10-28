@@ -1,7 +1,7 @@
 // Command pin prints the digests a pinned.Asset needs for one archive: the
 // archive's sha256, and the sha256 of each named file inside it.
 //
-//	go run github.com/meop/golie/cmd/pin -url <archive url> kebab sheesh
+//	go run github.com/meop/golie/cmd/pin -url <archive url> mallet wedge
 //
 // It is how a pin is bumped: run it for each platform's asset of the new
 // release and paste what it prints into the tool's digest table.

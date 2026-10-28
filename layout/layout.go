@@ -3,7 +3,7 @@
 // lets one tidy clean either.
 //
 //	bin/                          the tool and its shims; the one dir on PATH
-//	vendor/sheesh/                kebab and its templates; never on PATH
+//	vendor/wedge/                mallet and its templates; never on PATH
 //	extract/<key>/<version>/      one install, unpacked
 //	download/<source>/<version>/  the release assets it was unpacked from
 //	manifest.json, .lock
@@ -39,8 +39,8 @@ func (l Layout) BinDir() (string, error) { return l.made("bin") }
 // for you. Nothing here belongs on PATH. It is created.
 func (l Layout) VendorDir() (string, error) { return l.made("vendor") }
 
-// ShimDir holds sheesh's kebab stamper and its templates. It is created.
-func (l Layout) ShimDir() (string, error) { return l.made("vendor", "sheesh") }
+// ShimDir holds wedge's mallet stamper and its templates. It is created.
+func (l Layout) ShimDir() (string, error) { return l.made("vendor", "wedge") }
 
 // ExtractsDir is where installs are unpacked. It is not created: it existing
 // says something was installed.

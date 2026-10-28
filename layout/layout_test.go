@@ -37,7 +37,7 @@ func TestLayout(t *testing.T) {
 		t.Errorf("BinDir = %s, %v", bin, err)
 	}
 	shims, err := l.ShimDir()
-	if err != nil || shims != filepath.Join(root, "vendor", "sheesh") || !exists(shims) {
+	if err != nil || shims != filepath.Join(root, "vendor", "wedge") || !exists(shims) {
 		t.Errorf("ShimDir = %s, %v", shims, err)
 	}
 	vendor, err := l.VendorDir()

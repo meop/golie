@@ -46,10 +46,13 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
 - `pinned/` — `Ensure` makes a directory hold a pinned tool's files, each with
   its pinned sha256, and nothing else beside what `Options.Keep` names. `Read`
   is the other direction, for `cmd/pin`
-- `sheesh/` — the pinned sheesh version and the digest of every platform's
+- `wedge/` — the pinned wedge version and the digest of every platform's
   archive and files; `Sync` is `pinned.Ensure` for it
-- `shim/` — `Stamper` stamps a shim with the vendored `kebab`, and only
-  replaces or removes a file it can tell is one of its own
+- `shim/` — `Stamper` stamps a shim with the vendored `mallet`, and only
+  replaces or removes a file it can tell is one of its own: one whose wedge
+  trailer names a target under `Owned` (`StampedTarget` reads it). The trailer
+  is wedge's format, never a string in its code, so a reworded message or a
+  rename does not lose a tool its shims
 - `upgrade/` — `Self` reads the newest release from where `releases/latest`
   redirects, checks the archive against the release's `SHA256SUMS`, and
   replaces the running binary. A tool that names `Dir`, where its installer
@@ -102,9 +105,9 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   and names its commands stays in the tool; `manifest`, `layout`, `journal`
   and `tidy` never print or prompt
 
-## Bumping sheesh
+## Bumping wedge
 
-Change `sheesh.Version`, then replace every entry of `sheesh.Assets` with what
-`cmd/pin` prints for that release's six archives (`kebab` and `sheesh`, and on
-Windows `kebab.exe`, `sheesh.exe` and `sheesh-gui.exe`). Both tools move to it
+Change `wedge.Version`, then replace every entry of `wedge.Assets` with what
+`cmd/pin` prints for that release's six archives (`mallet` and `wedge`, and on
+Windows `mallet.exe`, `wedge.exe` and `wedge-gui.exe`). Both tools move to it
 when they take the new golie.

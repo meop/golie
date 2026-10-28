@@ -43,9 +43,9 @@ func (s Stamper) Path(file string) string {
 }
 
 // IsShim reports whether path is a shim this tool stamped: a wedge shim
-// whose stamped target is under Owned. It is the guard for every write and
-// delete: the bin directory may hold binaries the tool knows nothing about,
-// and those are not its to replace or remove.
+// pointing into Owned. It is the guard for every write and delete: the bin
+// directory may hold binaries the tool knows nothing about, and those are not
+// its to replace or remove.
 func (s Stamper) IsShim(path string) bool {
 	target, ok := StampedTarget(path)
 	if !ok {
@@ -55,11 +55,6 @@ func (s Stamper) IsShim(path string) bool {
 	return err == nil && !filepath.IsAbs(rel) && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
-// StampedTarget is the target path stamped into the wedge shim at path, read
-// from its trailer: the path's bytes, their length as a little-endian u32,
-// and "SHIM", or with stamped arguments the path and each argument NUL
-// separated and "SHM2". The trailer is wedge's format, which every shim it
-// or sheesh before it stamped has; ok is false for any file without one.
 func StampedTarget(path string) (target string, ok bool) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -111,9 +106,6 @@ func (s Stamper) Create(file, source string, force bool) error {
 		return err
 	}
 
-	// mallet stamps beside target and moves the shim into place, so a running
-	// shim is replaced too: on Windows, where it cannot be deleted while its
-	// target runs, by moving it aside for the next stamp to delete
 	out, err := exec.Command(malletPath, "--source-path", source, "--target-path", target).CombinedOutput() //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("mallet: %w: %s", err, bytes.TrimSpace(out))

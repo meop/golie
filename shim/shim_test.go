@@ -25,8 +25,6 @@ func write(t *testing.T, path, body string) {
 	}
 }
 
-// stamped is a template's bytes with mallet's trailer: the path alone, or the
-// path and its arguments.
 func stamped(target string, args ...string) string {
 	payload, magic := target, "SHIM"
 	if len(args) > 0 {
@@ -58,6 +56,27 @@ func TestIsShimReadsTheStampedTarget(t *testing.T) {
 	}
 	if target, ok := StampedTarget(withArgs); !ok || target != filepath.Join(s.Owned, "pwsh", "pwsh.exe") {
 		t.Errorf("StampedTarget = %q, %v", target, ok)
+	}
+}
+
+func TestStampedTargetWantsAWholeTrailer(t *testing.T) {
+	s := stamper(t)
+	body := stamped("/opt/tool")
+	for name, b := range map[string]string{
+		"empty":     "",
+		"short":     "SHIM",
+		"no magic":  body[:len(body)-1] + "X",
+		"too long":  "x" + string([]byte{0xff, 0xff, 0, 0}) + "SHIM",
+		"no target": string([]byte{0, 0, 0, 0}) + "SHIM",
+	} {
+		path := s.Path(strings.ReplaceAll(name, " ", "-"))
+		write(t, path, b)
+		if target, ok := StampedTarget(path); ok {
+			t.Errorf("%s: StampedTarget = %q, want none", name, target)
+		}
+	}
+	if target, ok := StampedTarget(s.BinDir); ok {
+		t.Errorf("a directory: StampedTarget = %q, want none", target)
 	}
 }
 

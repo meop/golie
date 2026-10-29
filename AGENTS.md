@@ -35,7 +35,7 @@ package added or removed, or a guarantee one makes.
 To cut a release: bump the version in `VERSION` and push to `main`. The CI
 pipeline (`.github/workflows/pipeline.yaml`) runs: Version check (skips the rest
 if `v<VERSION>` already exists) → Validate (fmt + lint + test, and the tests
-again on Windows) → Release, which creates a GPG-signed tag `v<VERSION>`. The
+again on Windows and macOS) → Release, which creates a GPG-signed tag `v<VERSION>`. The
 tag is the release: a Go module needs nothing else. Requires the
 `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE` repository secrets. Never create the tag
 by hand.

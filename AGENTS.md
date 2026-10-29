@@ -73,12 +73,16 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   pinned install's shim is called. Its JSON field names are a contract: a
   change to one is a change to every `~/.ghpm` and `~/.gotm` in use
 - `layout/` — the directories of a state directory: `bin`, `vendor`,
-  `extract/<key>`, `download/<source>/<version>`, the manifest and
+  `extract/<key>/<version>` and the `extract/<key>/latest` link shims point
+  through, `download/<source>/<version>`, the manifest and
   the lock
 - `journal/` — what makes an install all or nothing: each mutation recorded
   with its undo before it is made, rolled back newest first when the op fails
-  short of the manifest write. `Swap` puts a staged install where the live one
-  is, at the same path, so a shim pointing into it need not be stamped again
+  short of the manifest write. `Place` puts an unpacked version at its dir,
+  beside one already there rather than over it; `Point` moves the latest link
+- `link/` — the latest link: an absolute symlink on unix, a junction on
+  Windows (any user can make one, and it moves while a program runs from the
+  directory it points at). Never removed recursively
 - `tidy/` — finds what the manifest does not account for (shims, extract
   dirs, cached downloads) and what it claims that is gone (broken installs),
   and removes either. No output and no prompts: the tool shows what a `Find`

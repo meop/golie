@@ -4,8 +4,9 @@
 //
 //	bin/                          the tool and its shims; the one dir on PATH
 //	vendor/wedge/                mallet and its templates; never on PATH
-//	extract/<key>/                one install, unpacked, at the same path from one version to the next
-//	extract/.<key>.*              an install on its way in or out; never there between ops
+//	extract/<key>/<version>/      one version of one install, unpacked
+//	extract/<key>/latest          a link to the version installed: what shims point through
+//	extract/<key>/.<version>.new  a version being unpacked; never there between ops
 //	download/<source>/<version>/  the release assets it was unpacked from
 //	manifest.json, .lock
 package layout
@@ -47,12 +48,23 @@ func (l Layout) ShimDir() (string, error) { return l.made("vendor", "wedge") }
 // says something was installed.
 func (l Layout) ExtractsDir() string { return filepath.Join(l.Root, "extract") }
 
-// ExtractPath is where one install is unpacked, whether or not it is there.
+// ExtractPath holds every version of one install, and its latest link.
 func (l Layout) ExtractPath(key string) string { return filepath.Join(l.ExtractsDir(), key) }
 
-// StagePath is where the next unpack of key is made, for journal.Swap.
-func (l Layout) StagePath(key string) string {
-	return filepath.Join(l.ExtractsDir(), "."+key+".new")
+// LatestPath is the link to the version of key installed, which shims point through.
+func (l Layout) LatestPath(key string) string { return filepath.Join(l.ExtractPath(key), Latest) }
+
+// Latest is the name of an install's link to its version.
+const Latest = "latest"
+
+// VersionPath is where one version of key is unpacked.
+func (l Layout) VersionPath(key, version string) string {
+	return filepath.Join(l.ExtractPath(key), version)
+}
+
+// StagePath is where a version of key is unpacked, for journal.Place.
+func (l Layout) StagePath(key, version string) string {
+	return filepath.Join(l.ExtractPath(key), "."+version+".new")
 }
 
 // DownloadsDir is the cache of release assets. It is not created.

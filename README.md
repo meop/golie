@@ -21,7 +21,8 @@ go get github.com/meop/golie
 | `upgrade` | A tool upgrading itself from its GitHub releases, over plain https, and only the copy its own installer placed |
 | `vers` | Version strings, pins (`14`, `14.1`, `14.1.0`) and comparison |
 | `manifest` | The record of what is installed: one JSON file, keyed `name` or `name@pin`, the same for every tool |
-| `layout` | Where a tool's state lives: `bin`, `vendor`, `extract/<key>`, `download/<source>/<version>` |
+| `layout` | Where a tool's state lives: `bin`, `vendor`, `extract/<key>/<version>` and its `latest` link, `download/<source>/<version>` |
+| `link` | The `latest` link: an absolute symlink on unix, a junction on Windows |
 | `journal` | All-or-nothing installs: every step recorded with its undo, rolled back unless the manifest was written |
 | `tidy` | Finds and removes broken installs and orphaned shims, extract dirs and downloads |
 | `ui` | One sink for output and prompts, with deferred blank lines |

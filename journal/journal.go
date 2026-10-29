@@ -9,17 +9,17 @@
 // could not re-point, leaving a manifest that claimed a version that was not
 // on disk and had forgotten a shim that was.
 //
-// This is also why the install a Swap moves aside is removed only after the
-// manifest write: every undo here restores from it.
+// This is also why the version a Point moves the latest link off is removed
+// only after the manifest write: every undo here restores from it.
 package journal
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"slices"
 	"time"
 
+	"github.com/meop/golie/link"
 	"github.com/meop/golie/shim"
 )
 
@@ -65,40 +65,31 @@ func (j *Journal) Rollback() []error {
 	return errs
 }
 
-// Swap moves live aside and stage into its place, and returns the undo. aside
-// is empty for a first install, and otherwise the caller's to remove after
-// the manifest write. Windows moves a directory with a binary of it running.
-func Swap(stage, live string) (aside string, undo func() error, err error) {
-	_, statErr := os.Lstat(live)
-	had := statErr == nil
-	if had {
-		aside = beside(live, "old")
-		if err := os.Rename(live, aside); err != nil {
-			return "", nil, err
-		}
+// Place moves stage to dir, or beside a dir already there as dir+<n>, and
+// returns where it went and the undo.
+func Place(stage, dir string) (placed string, undo func() error, err error) {
+	placed = dir
+	if _, err := os.Lstat(dir); err == nil {
+		placed = fmt.Sprintf("%s+%d", dir, time.Now().UnixNano())
 	}
-	if err := os.Rename(stage, live); err != nil {
-		if had {
-			_ = os.Rename(aside, live)
-		}
+	if err := os.Rename(stage, placed); err != nil {
 		return "", nil, err
 	}
-	return aside, func() error {
-		failed := beside(live, "failed")
-		if err := os.Rename(live, failed); err != nil {
-			return err
-		}
-		_ = os.RemoveAll(failed)
-		if had {
-			return os.Rename(aside, live)
-		}
-		return nil
-	}, nil
+	return placed, func() error { return os.RemoveAll(placed) }, nil
 }
 
-// beside is unique, so one a running binary kept from removal never blocks the next.
-func beside(path, what string) string {
-	return filepath.Join(filepath.Dir(path), fmt.Sprintf(".%s.%d.%s", filepath.Base(path), time.Now().UnixNano(), what))
+// Point moves the link at path to dir, and returns the undo.
+func Point(path, dir string) (undo func() error, err error) {
+	old, had := link.Target(path)
+	if err := link.Point(path, dir); err != nil {
+		return nil, err
+	}
+	return func() error {
+		if had {
+			return link.Point(path, old)
+		}
+		return link.Remove(path)
+	}, nil
 }
 
 // ShimUndo reverses a shim about to be stamped or deleted. It reads the shim's

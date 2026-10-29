@@ -17,12 +17,14 @@ func TestLayout(t *testing.T) {
 
 	// naming a place an install would be does not make it
 	for got, want := range map[string]string{
-		l.ManifestPath():        filepath.Join(root, "manifest.json"),
-		l.LockPath():            filepath.Join(root, ".lock"),
-		l.ExtractsDir():         filepath.Join(root, "extract"),
-		l.ExtractPath("fzf@14"): filepath.Join(root, "extract", "fzf@14"),
-		l.StagePath("fzf@14"):   filepath.Join(root, "extract", ".fzf@14.new"),
-		l.DownloadsDir():        filepath.Join(root, "download"),
+		l.ManifestPath():                  filepath.Join(root, "manifest.json"),
+		l.LockPath():                      filepath.Join(root, ".lock"),
+		l.ExtractsDir():                   filepath.Join(root, "extract"),
+		l.ExtractPath("fzf@14"):           filepath.Join(root, "extract", "fzf@14"),
+		l.LatestPath("fzf@14"):            filepath.Join(root, "extract", "fzf@14", "latest"),
+		l.VersionPath("fzf@14", "14.1.0"): filepath.Join(root, "extract", "fzf@14", "14.1.0"),
+		l.StagePath("fzf@14", "14.1.0"):   filepath.Join(root, "extract", "fzf@14", ".14.1.0.new"),
+		l.DownloadsDir():                  filepath.Join(root, "download"),
 	} {
 		if got != want {
 			t.Errorf("got %s, want %s", got, want)

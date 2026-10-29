@@ -109,3 +109,25 @@ func TestCreateAndRemoveLeaveAForeignFileAlone(t *testing.T) {
 		t.Errorf("removing a shim that is not there returned %v", err)
 	}
 }
+
+func TestCreateLeavesAShimMalletWouldStampTheSameAndRestampsOtherwise(t *testing.T) {
+	s := stamper(t)
+	source := filepath.Join(s.Owned, "fzf", "latest", ExeName("fzf"))
+	write(t, filepath.Join(s.MalletDir, ExeName("wedge")), "TEMPLATE")
+	write(t, filepath.Join(s.MalletDir, ExeName("mallet")), "not a program")
+	n := make([]byte, 4)
+	binary.LittleEndian.PutUint32(n, uint32(len(source)))
+	shim := "TEMPLATE" + source + string(n) + "SHIM"
+	write(t, s.Path(ExeName("fzf")), shim)
+
+	if err := s.Create(ExeName("fzf"), source, false); err != nil {
+		t.Errorf("a shim already right was stamped again: %v", err)
+	}
+	if err := s.Create(ExeName("fzf"), filepath.Join(s.Owned, "fzf", "latest", ExeName("other")), false); err == nil {
+		t.Error("a shim to another target was left as it was")
+	}
+	write(t, filepath.Join(s.MalletDir, ExeName("wedge")), "NEWER TEMPLATE")
+	if err := s.Create(ExeName("fzf"), source, false); err == nil {
+		t.Error("a shim from an older template was left as it was")
+	}
+}

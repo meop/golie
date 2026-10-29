@@ -102,6 +102,9 @@ func (s Stamper) Create(file, source string, force bool) error {
 	if _, err := os.Stat(malletPath); err != nil {
 		return fmt.Errorf("mallet not found at %s", malletPath)
 	}
+	if s.stampedFromTemplate(target, source) {
+		return nil
+	}
 	if err := os.MkdirAll(s.BinDir, 0755); err != nil {
 		return err
 	}
@@ -111,6 +114,26 @@ func (s Stamper) Create(file, source string, force bool) error {
 		return fmt.Errorf("mallet: %w: %s", err, bytes.TrimSpace(out))
 	}
 	return nil
+}
+
+// stampedFromTemplate reports whether the shim at path is what mallet would
+// stamp now: source, no arguments, on a template beside mallet.
+func (s Stamper) stampedFromTemplate(path, source string) bool {
+	b, err := os.ReadFile(path)
+	if err != nil || len(b) < 8 || string(b[len(b)-4:]) != "SHIM" {
+		return false
+	}
+	n := int(binary.LittleEndian.Uint32(b[len(b)-8 : len(b)-4]))
+	if n+8 > len(b) || string(b[len(b)-8-n:len(b)-8]) != source {
+		return false
+	}
+	body := b[:len(b)-8-n]
+	for _, name := range []string{"wedge", "wedge-gui"} {
+		if t, err := os.ReadFile(filepath.Join(s.MalletDir, ExeName(name))); err == nil && bytes.Equal(t, body) {
+			return true
+		}
+	}
+	return false
 }
 
 // Remove deletes the shim file. A file of that name that the tool did not

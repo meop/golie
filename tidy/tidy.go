@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/meop/golie/layout"
+	"github.com/meop/golie/link"
 	"github.com/meop/golie/manifest"
 )
 
@@ -64,6 +65,10 @@ func FindBroken(m *manifest.Manifest, d Dirs) []Broken {
 		extractPath := filepath.Join(d.Extracts, key)
 		_, err := os.Lstat(extractPath)
 		extractMissing := os.IsNotExist(err)
+		if target, ok := link.Target(filepath.Join(extractPath, layout.Latest)); ok {
+			_, err := os.Stat(target)
+			extractMissing = os.IsNotExist(err)
+		}
 
 		if len(e.Bin) == 0 {
 			if len(e.Font) > 0 && extractMissing {
@@ -168,8 +173,8 @@ type OrphanExtract struct {
 
 var leftover = regexp.MustCompile(`^\.(.+?)(\.new|\.\d+\.(old|failed))$`)
 
-// FindOrphanExtracts lists the extract dirs the manifest does not name, and
-// every leftover.
+// FindOrphanExtracts lists what no install is on: extract dirs the manifest
+// does not name, leftovers, and inside an install all but latest and its target.
 func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtract {
 	entries, err := os.ReadDir(extractsDir)
 	if err != nil {
@@ -187,6 +192,20 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 		}
 		if _, installed := m.Extracts[e.Name()]; !installed {
 			orphans = append(orphans, OrphanExtract{Key: e.Name(), Path: path})
+			continue
+		}
+		target, ok := link.Target(filepath.Join(path, layout.Latest))
+		if !ok {
+			continue
+		}
+		inner, err := os.ReadDir(path)
+		if err != nil {
+			continue
+		}
+		for _, v := range inner {
+			if v.Name() != layout.Latest && v.Name() != filepath.Base(target) {
+				orphans = append(orphans, OrphanExtract{Key: e.Name(), Leftover: true, Path: filepath.Join(path, v.Name())})
+			}
 		}
 	}
 	return orphans

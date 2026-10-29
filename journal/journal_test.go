@@ -81,63 +81,67 @@ func entries(t *testing.T, dir string) []string {
 	return names
 }
 
-func TestSwapPutsTheNewInstallAtTheSamePathAndUndoBringsTheOldBack(t *testing.T) {
-	extracts := t.TempDir()
-	live, stage := filepath.Join(extracts, "fzf"), filepath.Join(extracts, ".fzf.new")
-	write(t, filepath.Join(live, "bin", "fzf"), "0.70")
-	write(t, filepath.Join(stage, "bin", "fzf"), "0.71")
+func TestPlacePutsAVersionAtItsDirAndUndoRemovesIt(t *testing.T) {
+	key := t.TempDir()
+	stage, dir := filepath.Join(key, ".0.71.new"), filepath.Join(key, "0.71")
+	write(t, filepath.Join(stage, "fzf"), "0.71")
 
-	aside, undo, err := Swap(stage, live)
+	placed, undo, err := Place(stage, dir)
+	if err != nil || placed != dir || read(t, filepath.Join(dir, "fzf")) != "0.71" {
+		t.Fatalf("placed %s, %v", placed, err)
+	}
+	if err := undo(); err != nil {
+		t.Fatal(err)
+	}
+	if got := entries(t, key); len(got) != 0 {
+		t.Errorf("the undo left %v", got)
+	}
+}
+
+func TestPlaceOfAVersionAlreadyThereGoesBesideItAndUndoRemovesOnlyTheNewOne(t *testing.T) {
+	key := t.TempDir()
+	dir := filepath.Join(key, "0.71")
+	write(t, filepath.Join(dir, "fzf"), "running")
+	stage := filepath.Join(key, ".0.71.new")
+	write(t, filepath.Join(stage, "fzf"), "reinstalled")
+
+	placed, undo, err := Place(stage, dir)
+	if err != nil || placed == dir || !strings.HasPrefix(placed, dir+"+") {
+		t.Fatalf("placed %s, %v", placed, err)
+	}
+	if read(t, filepath.Join(dir, "fzf")) != "running" || read(t, filepath.Join(placed, "fzf")) != "reinstalled" {
+		t.Error("the version already there was replaced")
+	}
+	if err := undo(); err != nil {
+		t.Fatal(err)
+	}
+	if got := entries(t, key); len(got) != 1 || got[0] != "0.71" || read(t, filepath.Join(dir, "fzf")) != "running" {
+		t.Errorf("the undo left %v", got)
+	}
+}
+
+func TestPointMovesTheLinkAndUndoMovesItBackOrRemovesIt(t *testing.T) {
+	key := t.TempDir()
+	one, two := filepath.Join(key, "0.70"), filepath.Join(key, "0.71")
+	write(t, filepath.Join(one, "fzf"), "0.70")
+	write(t, filepath.Join(two, "fzf"), "0.71")
+	latest := filepath.Join(key, "latest")
+
+	first, err := Point(latest, one)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := read(t, filepath.Join(live, "bin", "fzf")); got != "0.71" {
-		t.Errorf("live holds %s after the swap", got)
+	undo, err := Point(latest, two)
+	if err != nil || read(t, filepath.Join(latest, "fzf")) != "0.71" {
+		t.Fatalf("after the move: %v", err)
 	}
-	if got := read(t, filepath.Join(aside, "bin", "fzf")); got != "0.70" {
-		t.Errorf("aside holds %s", got)
+	if err := undo(); err != nil || read(t, filepath.Join(latest, "fzf")) != "0.70" {
+		t.Fatalf("the undo did not move it back: %v", err)
 	}
-
-	if err := undo(); err != nil {
+	if err := first(); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(t, filepath.Join(live, "bin", "fzf")); got != "0.70" {
-		t.Errorf("live holds %s after the undo", got)
-	}
-	if got := entries(t, extracts); len(got) != 1 || got[0] != "fzf" {
-		t.Errorf("the undo left %v", got)
-	}
-}
-
-func TestSwapOfAFirstInstallHasNothingAsideAndUndoRemovesIt(t *testing.T) {
-	extracts := t.TempDir()
-	live, stage := filepath.Join(extracts, "fzf"), filepath.Join(extracts, ".fzf.new")
-	write(t, filepath.Join(stage, "fzf"), "0.71")
-
-	aside, undo, err := Swap(stage, live)
-	if err != nil || aside != "" {
-		t.Fatalf("aside %q, %v", aside, err)
-	}
-	if err := undo(); err != nil {
-		t.Fatal(err)
-	}
-	if got := entries(t, extracts); len(got) != 0 {
-		t.Errorf("the undo left %v", got)
-	}
-}
-
-func TestSwapThatCannotMoveTheStageInLeavesTheInstallAsItWas(t *testing.T) {
-	extracts := t.TempDir()
-	live := filepath.Join(extracts, "fzf")
-	write(t, filepath.Join(live, "fzf"), "0.70")
-
-	if _, _, err := Swap(filepath.Join(extracts, ".missing.new"), live); err == nil {
-		t.Fatal("a swap with no stage succeeded")
-	}
-	if got := read(t, filepath.Join(live, "fzf")); got != "0.70" {
-		t.Errorf("live holds %s", got)
-	}
-	if got := entries(t, extracts); len(got) != 1 {
-		t.Errorf("the failed swap left %v", got)
+	if _, err := os.Lstat(latest); !os.IsNotExist(err) || read(t, filepath.Join(one, "fzf")) != "0.70" {
+		t.Error("undoing the first link left it, or took its target")
 	}
 }

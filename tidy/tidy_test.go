@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/meop/golie/layout"
+	"github.com/meop/golie/link"
 	"github.com/meop/golie/manifest"
 )
 
@@ -206,5 +207,53 @@ func TestOrphanDownloads(t *testing.T) {
 	PruneDownloadVersion(root, "go.dev/dl", "1.27.2")
 	if exists(filepath.Join(root, "go.dev")) || !exists(root) {
 		t.Error("PruneDownloadVersion left empty parents, or took the downloads dir")
+	}
+}
+
+func TestOrphanExtractsInsideAnInstallWithALatestLink(t *testing.T) {
+	m, d := state(t)
+	key := filepath.Join(d.Extracts, "fzf")
+	for _, p := range []string{"0.69.0/fzf", "0.70.0/fzf", ".0.71.0.new/fzf", "loose"} {
+		touch(t, filepath.Join(key, p))
+	}
+	if err := link.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, o := range FindOrphanExtracts(m, d.Extracts) {
+		if o.Key == "fzf" && o.Leftover {
+			got = append(got, filepath.Base(o.Path))
+		}
+	}
+	slices.Sort(got)
+	if want := []string{".0.71.0.new", "0.69.0", "bin", "loose"}; !slices.Equal(got, want) {
+		t.Errorf("orphans in fzf = %v, want %v", got, want)
+	}
+}
+
+func TestBrokenWhenTheLatestLinkPointsAtNothing(t *testing.T) {
+	m, d := state(t)
+	key := filepath.Join(d.Extracts, "fzf")
+	if err := link.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+		t.Fatal(err)
+	}
+	var missing bool
+	for _, b := range FindBroken(m, d) {
+		missing = missing || (b.Key == "fzf" && b.Issue == "missing extract")
+	}
+	if !missing {
+		t.Error("a latest link to no version read as an install")
+	}
+}
+
+func TestAnInstallWithNoLatestLinkIsWholeWhileItsDirIsThere(t *testing.T) {
+	m, d := state(t)
+	for _, b := range FindBroken(m, d) {
+		if b.Issue == "missing extract" {
+			t.Errorf("%s read as broken", b.Key)
+		}
+	}
+	for _, o := range FindOrphanExtracts(m, d.Extracts) {
+		t.Errorf("%s read as an orphan", o.Path)
 	}
 }

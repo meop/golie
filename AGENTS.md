@@ -87,10 +87,22 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
 - `tidy/` — finds what the manifest does not account for (shims, extract
   dirs, cached downloads) and what it claims that is gone (broken installs),
   and removes either. No output and no prompts: the tool shows what a `Find`
-  returned and asks
+  returned and asks. Inside an install it keeps the version file as a file, not by
+  name: where names fold case (macOS, Windows) it can sit under a name an older layout left, as Go's `VERSION`
 - `ui/` — deferred separators; see the comments in `ui.go`
 - `lock/`, `home/` — small, and what their package comments say
 - `cmd/pin/` — prints a `pinned.Asset` entry for an archive URL
+
+## Testing on a real host
+
+CI runs the tests on Linux, macOS and Windows. To run them on a machine of your own over ssh:
+
+- Windows: build the test binary anywhere (`GOOS=windows go test -c -o <pkg>.test.exe ./<pkg>/`), copy it over and run
+  it there. In PowerShell, quote a test flag whole (`'-test.v=true'`): PowerShell splits a bare `-test.v` at its dot.
+- macOS and Windows fold the case of file names: a test that makes two names differing only by case (or a link from
+  one to the other) cannot run there, so test the behavior the folding causes instead.
+- In a Windows ssh login, OpenSSH's own tools (`ssh`, `ssh-keygen`) can lose their output: run what uses them from the
+  desktop session.
 
 ## Conventions
 

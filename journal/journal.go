@@ -16,6 +16,7 @@ package journal
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -78,18 +79,27 @@ func Place(stage, dir string) (placed string, undo func() error, err error) {
 	return placed, func() error { return os.RemoveAll(placed) }, nil
 }
 
-// Point moves the pointer at path to dir, and returns the undo.
+// Point moves the pointer at path to dir, and returns the undo, which puts
+// back whatever file was there, pointer or not.
 func Point(path, dir string) (undo func() error, err error) {
-	old, had := pointer.Target(path)
+	old, readErr := os.ReadFile(path)
 	if err := pointer.Point(path, dir); err != nil {
 		return nil, err
 	}
 	return func() error {
-		if had {
-			return pointer.Point(path, old)
+		if readErr != nil {
+			return pointer.Remove(path)
 		}
-		return pointer.Remove(path)
+		tmp := beside(path, "restore")
+		if err := os.WriteFile(tmp, old, 0644); err != nil {
+			return err
+		}
+		return os.Rename(tmp, path)
 	}, nil
+}
+
+func beside(path, what string) string {
+	return filepath.Join(filepath.Dir(path), fmt.Sprintf(".%s.%d.%s", filepath.Base(path), time.Now().UnixNano(), what))
 }
 
 // ShimUndo reverses a shim about to be stamped or deleted. It reads the shim's

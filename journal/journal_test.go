@@ -146,3 +146,23 @@ func TestPointMovesThePointerAndUndoMovesItBackOrRemovesIt(t *testing.T) {
 		t.Error("undoing the first pointer left it")
 	}
 }
+
+func TestPointOverAFileThatIsNoPointerPutsItBackOnUndo(t *testing.T) {
+	key := t.TempDir()
+	vfile := filepath.Join(key, "version")
+	write(t, vfile, "go1.27.3\ntime 2026-10-01T00:00:00Z\n")
+
+	undo, err := Point(vfile, filepath.Join(key, "1.27.3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := undo(); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, vfile); got != "go1.27.3\ntime 2026-10-01T00:00:00Z\n" {
+		t.Errorf("the undo left %q", got)
+	}
+	if got := entries(t, key); len(got) != 1 {
+		t.Errorf("the undo left %v", got)
+	}
+}

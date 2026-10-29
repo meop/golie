@@ -203,12 +203,27 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 			continue
 		}
 		for _, v := range inner {
-			if v.Name() != layout.VersionFile && v.Name() != filepath.Base(target) {
+			if !kept(path, v.Name(), target) {
 				orphans = append(orphans, OrphanExtract{Key: e.Name(), Leftover: true, Path: filepath.Join(path, v.Name())})
 			}
 		}
 	}
 	return orphans
+}
+
+// kept reports whether name in an install's dir is its version file or the
+// version that names. The version file is matched as a file, not by name: where
+// names fold case it can sit under a name an older layout left (Go's VERSION).
+func kept(keyDir, name, target string) bool {
+	if name == filepath.Base(target) {
+		return true
+	}
+	entry, err := os.Stat(filepath.Join(keyDir, name))
+	if err != nil {
+		return false
+	}
+	file, err := os.Stat(filepath.Join(keyDir, layout.VersionFile))
+	return err == nil && os.SameFile(entry, file)
 }
 
 // PruneInstall removes from an install's dir all but its version file and the
@@ -223,7 +238,7 @@ func PruneInstall(keyDir string) (stuck []Stuck) {
 		return []Stuck{{Path: keyDir, Err: err}}
 	}
 	for _, e := range entries {
-		if e.Name() == layout.VersionFile || e.Name() == filepath.Base(target) {
+		if kept(keyDir, e.Name(), target) {
 			continue
 		}
 		path := filepath.Join(keyDir, e.Name())

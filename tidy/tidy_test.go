@@ -257,3 +257,31 @@ func TestAnInstallWithNoLatestPointerIsWholeWhileItsDirIsThere(t *testing.T) {
 		t.Errorf("%s read as an orphan", o.Path)
 	}
 }
+
+func TestPruneInstallKeepsOnlyTheLatestPointerAndItsVersion(t *testing.T) {
+	_, d := state(t)
+	key := filepath.Join(d.Extracts, "fzf")
+	for _, p := range []string{"0.69.0/fzf", "0.70.0/fzf", "ripgrep-15.2.0/rg", "loose"} {
+		touch(t, filepath.Join(key, p))
+	}
+	if stuck := PruneInstall(key); len(stuck) != 0 || !exists(filepath.Join(key, "loose")) {
+		t.Fatalf("an install with no pointer was pruned: %v", stuck)
+	}
+	if err := pointer.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+		t.Fatal(err)
+	}
+	if stuck := PruneInstall(key); len(stuck) != 0 {
+		t.Fatalf("stuck: %v", stuck)
+	}
+	entries, err := os.ReadDir(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	if !slices.Equal(names, []string{"0.70.0", "latest"}) {
+		t.Errorf("after the prune: %v", names)
+	}
+}

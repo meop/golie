@@ -211,6 +211,29 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 	return orphans
 }
 
+// PruneInstall removes from an install's dir all but its latest pointer and the
+// version it names, and returns what would not go.
+func PruneInstall(keyDir string) (stuck []Stuck) {
+	target, ok := pointer.Target(filepath.Join(keyDir, layout.Latest))
+	if !ok {
+		return nil
+	}
+	entries, err := os.ReadDir(keyDir)
+	if err != nil {
+		return []Stuck{{Path: keyDir, Err: err}}
+	}
+	for _, e := range entries {
+		if e.Name() == layout.Latest || e.Name() == filepath.Base(target) {
+			continue
+		}
+		path := filepath.Join(keyDir, e.Name())
+		if err := os.RemoveAll(path); err != nil {
+			stuck = append(stuck, Stuck{Path: path, Err: err})
+		}
+	}
+	return stuck
+}
+
 // PruneExtract removes path, an extract dir or a leftover, never extractsDir.
 func PruneExtract(path, extractsDir string) error {
 	if filepath.Clean(path) == filepath.Clean(extractsDir) {

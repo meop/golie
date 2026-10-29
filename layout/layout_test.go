@@ -17,12 +17,12 @@ func TestLayout(t *testing.T) {
 
 	// naming a place an install would be does not make it
 	for got, want := range map[string]string{
-		l.ManifestPath():              filepath.Join(root, "manifest.json"),
-		l.LockPath():                  filepath.Join(root, ".lock"),
-		l.ExtractsDir():               filepath.Join(root, "extract"),
-		l.ExtractBaseDir("fzf@14"):    filepath.Join(root, "extract", "fzf@14"),
-		l.ExtractPath("fzf@14", "14"): filepath.Join(root, "extract", "fzf@14", "14"),
-		l.DownloadsDir():              filepath.Join(root, "download"),
+		l.ManifestPath():        filepath.Join(root, "manifest.json"),
+		l.LockPath():            filepath.Join(root, ".lock"),
+		l.ExtractsDir():         filepath.Join(root, "extract"),
+		l.ExtractPath("fzf@14"): filepath.Join(root, "extract", "fzf@14"),
+		l.StagePath("fzf@14"):   filepath.Join(root, "extract", ".fzf@14.new"),
+		l.DownloadsDir():        filepath.Join(root, "download"),
 	} {
 		if got != want {
 			t.Errorf("got %s, want %s", got, want)
@@ -43,10 +43,6 @@ func TestLayout(t *testing.T) {
 	vendor, err := l.VendorDir()
 	if err != nil || vendor != filepath.Join(root, "vendor") {
 		t.Errorf("VendorDir = %s, %v", vendor, err)
-	}
-	extract, err := l.ExtractDir("go", "1.27.2")
-	if err != nil || extract != l.ExtractPath("go", "1.27.2") || !exists(extract) {
-		t.Errorf("ExtractDir = %s, %v", extract, err)
 	}
 	// a download dir is named by the version alone, whatever the tag carried
 	download, err := l.DownloadDir("github.com/junegunn/fzf", "v0.70.0")

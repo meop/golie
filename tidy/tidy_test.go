@@ -33,7 +33,7 @@ func install(t *testing.T, m *manifest.Manifest, d Dirs, key, version string, sh
 		touch(t, filepath.Join(d.Bin, s))
 		bins[s] = "bin/" + s
 	}
-	touch(t, filepath.Join(d.Extracts, key, version, "bin", "x"))
+	touch(t, filepath.Join(d.Extracts, key, "bin", "x"))
 	name, _, _ := manifest.ParseKey(key)
 	touch(t, filepath.Join(d.Downloads, layout.SourceToRelPath(m.Repos[name]), version, "asset.tar.gz"))
 	m.Extracts[key] = manifest.Entry{Version: version, Bin: bins}
@@ -149,27 +149,29 @@ func TestOrphanShims(t *testing.T) {
 
 func TestOrphanExtracts(t *testing.T) {
 	m, d := state(t)
-	touch(t, filepath.Join(d.Extracts, "gone", "1.0", "x"))
-	touch(t, filepath.Join(d.Extracts, "fzf", "0.69.0", "x"))
+	touch(t, filepath.Join(d.Extracts, "gone", "x"))
+	touch(t, filepath.Join(d.Extracts, ".fzf.new", "x"))
+	touch(t, filepath.Join(d.Extracts, ".fzf@14.1793253698000000000.old", "x"))
 	got := FindOrphanExtracts(m, d.Extracts)
-	slices.SortFunc(got, func(a, b OrphanExtract) int { return strings.Compare(a.Key, b.Key) })
-	if len(got) != 2 || got[0].Key != "fzf" || got[0].Version != "0.69.0" || got[1].Key != "gone" || got[1].Version != "" {
-		t.Fatalf("FindOrphanExtracts = %+v", got)
+	slices.SortFunc(got, func(a, b OrphanExtract) int { return strings.Compare(a.Path, b.Path) })
+	want := []OrphanExtract{
+		{Key: "fzf", Leftover: true, Path: filepath.Join(d.Extracts, ".fzf.new")},
+		{Key: "fzf@14", Leftover: true, Path: filepath.Join(d.Extracts, ".fzf@14.1793253698000000000.old")},
+		{Key: "gone", Path: filepath.Join(d.Extracts, "gone")},
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("FindOrphanExtracts = %+v, want %+v", got, want)
 	}
 	for _, o := range got {
 		if err := PruneExtract(o.Path, d.Extracts); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if exists(filepath.Join(d.Extracts, "gone")) || !exists(filepath.Join(d.Extracts, "fzf", "0.70.0")) {
+	if len(FindOrphanExtracts(m, d.Extracts)) != 0 || !exists(filepath.Join(d.Extracts, "fzf")) {
 		t.Error("pruning took the wrong dirs")
 	}
-	// the last version of a key takes the key's dir with it, never the root
-	if err := PruneExtract(filepath.Join(d.Extracts, "fzf", "0.70.0"), d.Extracts); err != nil {
-		t.Fatal(err)
-	}
-	if exists(filepath.Join(d.Extracts, "fzf")) || !exists(d.Extracts) {
-		t.Error("an emptied key dir was kept, or the extracts dir was not")
+	if err := PruneExtract(d.Extracts, d.Extracts); err == nil || !exists(d.Extracts) {
+		t.Error("the extracts dir itself was pruned")
 	}
 }
 

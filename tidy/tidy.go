@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -60,7 +61,7 @@ func FindBroken(m *manifest.Manifest, d Dirs) []Broken {
 	var items []Broken
 	for _, key := range m.Keys() {
 		e := m.Extracts[key]
-		extractPath := filepath.Join(d.Extracts, key, e.Version)
+		extractPath := filepath.Join(d.Extracts, key)
 		_, err := os.Lstat(extractPath)
 		extractMissing := os.IsNotExist(err)
 
@@ -117,7 +118,7 @@ func RemoveBroken(m *manifest.Manifest, b Broken, d Dirs) (changed bool, stuck [
 		m.Extracts[b.Key] = e
 		if len(e.Bin) == 0 && len(e.Font) == 0 {
 			m.RemoveExtract(b.Key)
-			_ = PruneExtract(filepath.Join(d.Extracts, b.Key, e.Version), d.Extracts)
+			_ = PruneExtract(filepath.Join(d.Extracts, b.Key), d.Extracts)
 		}
 		return true, nil
 	}
@@ -157,16 +158,18 @@ func FindOrphanShims(m *manifest.Manifest, binDir string, keep []string, isShim 
 	return paths
 }
 
-// OrphanExtract is an unpacked install no manifest entry is on: a whole key
-// (Version empty) or one stale version of a key that is installed.
+// OrphanExtract is an unpacked install no manifest entry is on, or what an op
+// left staged or aside (Leftover).
 type OrphanExtract struct {
-	Key     string
-	Version string
-	Path    string
+	Key      string
+	Leftover bool
+	Path     string
 }
 
-// FindOrphanExtracts lists the extract dirs, and the version dirs inside
-// installed ones, that the manifest does not name.
+var leftover = regexp.MustCompile(`^\.(.+?)(\.new|\.\d+\.(old|failed))$`)
+
+// FindOrphanExtracts lists the extract dirs the manifest does not name, and
+// every leftover.
 func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtract {
 	entries, err := os.ReadDir(extractsDir)
 	if err != nil {
@@ -177,38 +180,24 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 		if !e.IsDir() {
 			continue
 		}
-		key := e.Name()
-		entry, installed := m.Extracts[key]
-		if !installed {
-			orphans = append(orphans, OrphanExtract{Key: key, Path: filepath.Join(extractsDir, key)})
+		path := filepath.Join(extractsDir, e.Name())
+		if match := leftover.FindStringSubmatch(e.Name()); match != nil {
+			orphans = append(orphans, OrphanExtract{Key: match[1], Leftover: true, Path: path})
 			continue
 		}
-		versions, err := os.ReadDir(filepath.Join(extractsDir, key))
-		if err != nil {
-			continue
-		}
-		for _, v := range versions {
-			if v.IsDir() && v.Name() != entry.Version {
-				orphans = append(orphans, OrphanExtract{Key: key, Version: v.Name(), Path: filepath.Join(extractsDir, key, v.Name())})
-			}
+		if _, installed := m.Extracts[e.Name()]; !installed {
+			orphans = append(orphans, OrphanExtract{Key: e.Name(), Path: path})
 		}
 	}
 	return orphans
 }
 
-// PruneExtract removes path (an extract dir, or one version dir of it) and,
-// if that leaves its parent empty, the parent too. The error is the one from
-// removing path itself, so a caller's count of what it removed can be of what
-// is really gone.
+// PruneExtract removes path, an extract dir or a leftover, never extractsDir.
 func PruneExtract(path, extractsDir string) error {
-	err := os.RemoveAll(path)
-	parent := filepath.Dir(path)
-	if parent != extractsDir {
-		if es, rerr := os.ReadDir(parent); rerr == nil && len(es) == 0 {
-			_ = os.Remove(parent)
-		}
+	if filepath.Clean(path) == filepath.Clean(extractsDir) {
+		return fmt.Errorf("refusing to remove the extracts dir %s", extractsDir)
 	}
-	return err
+	return os.RemoveAll(path)
 }
 
 // OrphanDownload is a cached release asset of a version no install is on.

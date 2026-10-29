@@ -4,7 +4,8 @@
 //
 //	bin/                          the tool and its shims; the one dir on PATH
 //	vendor/wedge/                mallet and its templates; never on PATH
-//	extract/<key>/<version>/      one install, unpacked
+//	extract/<key>/                one install, unpacked, at the same path from one version to the next
+//	extract/.<key>.*              an install on its way in or out; never there between ops
 //	download/<source>/<version>/  the release assets it was unpacked from
 //	manifest.json, .lock
 package layout
@@ -46,19 +47,12 @@ func (l Layout) ShimDir() (string, error) { return l.made("vendor", "wedge") }
 // says something was installed.
 func (l Layout) ExtractsDir() string { return filepath.Join(l.Root, "extract") }
 
-// ExtractBaseDir holds every version of one install.
-func (l Layout) ExtractBaseDir(key string) string { return filepath.Join(l.ExtractsDir(), key) }
+// ExtractPath is where one install is unpacked, whether or not it is there.
+func (l Layout) ExtractPath(key string) string { return filepath.Join(l.ExtractsDir(), key) }
 
-// ExtractPath is where one version of one install is unpacked, whether or not
-// it is there.
-func (l Layout) ExtractPath(key, version string) string {
-	return filepath.Join(l.ExtractBaseDir(key), version)
-}
-
-// ExtractDir is ExtractPath, created.
-func (l Layout) ExtractDir(key, version string) (string, error) {
-	dir := l.ExtractPath(key, version)
-	return dir, os.MkdirAll(dir, 0755)
+// StagePath is where the next unpack of key is made, for journal.Swap.
+func (l Layout) StagePath(key string) string {
+	return filepath.Join(l.ExtractsDir(), "."+key+".new")
 }
 
 // DownloadsDir is the cache of release assets. It is not created.

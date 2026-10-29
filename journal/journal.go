@@ -9,14 +9,16 @@
 // could not re-point, leaving a manifest that claimed a version that was not
 // on disk and had forgotten a shim that was.
 //
-// This is also why the old extract dir is removed only after the manifest
-// write: every undo here restores from it.
+// This is also why the install a Swap moves aside is removed only after the
+// manifest write: every undo here restores from it.
 package journal
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
+	"time"
 
 	"github.com/meop/golie/shim"
 )
@@ -63,22 +65,48 @@ func (j *Journal) Rollback() []error {
 	return errs
 }
 
-// ExtractUndo reverses an extraction into newDir. An op that lands on the
-// version already installed re-extracts in place, so there is nothing to undo
-// — and removing that dir would delete the live install.
-func ExtractUndo(newDir, oldVersion, newVersion string) func() error {
-	if oldVersion == newVersion {
-		return nil
+// Swap moves live aside and stage into its place, and returns the undo. aside
+// is empty for a first install, and otherwise the caller's to remove after
+// the manifest write. Windows moves a directory with a binary of it running.
+func Swap(stage, live string) (aside string, undo func() error, err error) {
+	_, statErr := os.Lstat(live)
+	had := statErr == nil
+	if had {
+		aside = beside(live, "old")
+		if err := os.Rename(live, aside); err != nil {
+			return "", nil, err
+		}
 	}
-	return func() error { return os.RemoveAll(newDir) }
+	if err := os.Rename(stage, live); err != nil {
+		if had {
+			_ = os.Rename(aside, live)
+		}
+		return "", nil, err
+	}
+	return aside, func() error {
+		failed := beside(live, "failed")
+		if err := os.Rename(live, failed); err != nil {
+			return err
+		}
+		_ = os.RemoveAll(failed)
+		if had {
+			return os.Rename(aside, live)
+		}
+		return nil
+	}, nil
 }
 
-// ShimUndo reverses a shim about to be stamped or deleted: re-stamping it at
-// the binary it ran before the op, or removing it when the op is what created
-// it. An empty oldSource means there was no such shim.
-func ShimUndo(s shim.Stamper, file, oldSource string) func() error {
-	if oldSource == "" {
-		return func() error { return s.Remove(file) }
+// beside is unique, so one a running binary kept from removal never blocks the next.
+func beside(path, what string) string {
+	return filepath.Join(filepath.Dir(path), fmt.Sprintf(".%s.%d.%s", filepath.Base(path), time.Now().UnixNano(), what))
+}
+
+// ShimUndo reverses a shim about to be stamped or deleted. It reads the shim's
+// target when called, so it is called before the mutation.
+func ShimUndo(s shim.Stamper, file string) func() error {
+	path := s.Path(file)
+	if old, ok := shim.StampedTarget(path); ok && s.IsShim(path) {
+		return func() error { return s.Create(file, old, true) }
 	}
-	return func() error { return s.Create(file, oldSource, true) }
+	return func() error { return s.Remove(file) }
 }

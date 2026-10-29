@@ -14,7 +14,7 @@ import (
 // exactly this before it is used, and bumping it here, with the digests
 // below, is the only way it moves: it is the tool's internals, not something
 // its user chose to install.
-const Version = "0.3.0"
+const Version = "0.4.0"
 
 // ReleaseBase is where wedge's releases are downloaded from: a plain release
 // download addressed by the pinned version, not the GitHub API. It is a var,
@@ -25,12 +25,12 @@ var ReleaseBase = "https://github.com/meop/wedge/releases/download/"
 // spells in their names: each one's sha256, and that of every file kept from
 // it. `go run ./cmd/pin` prints an entry; see AGENTS.md for bumping the pin.
 var Assets = map[string]pinned.Asset{
-	"linux-x86_64":    {SHA256: "7194eae365b17b9fd6e86d610918fb63df1c38576b956d11644cdd39d7e6a9d8", Files: map[string]string{"mallet": "561038335c311f60f8db5f79982707fb8574b9e013be79c709a0d45d67378921", "wedge": "37bc8959949504db118d84cb14d4ce77b0fd0bceb86d9a9c1435d743dc9c94ad"}},
-	"linux-aarch64":   {SHA256: "63cf702bebdc36df94077f503e76128a60e0c58df5b782669ba428b31eabd814", Files: map[string]string{"mallet": "0d92dbab7c33b3153a5554f5a20eb1167dd014e28efab1181dad8398879bb611", "wedge": "ed69092138be3876daa76d7a26f477afae39d50658dbb822b508bb999d6df2bd"}},
-	"darwin-x86_64":   {SHA256: "b8df892e0a5cf8fab7dcc9cb39fd0548aa6f11fbcd91859363c891558220b9ce", Files: map[string]string{"mallet": "785f38a0c609357624b81fdf6d53d053574a7f383a8c21f1a800f34ad3f9ebb4", "wedge": "2aa3dfa73018d8ba0a1a6af6123087b236f9b3d310512f1c4c58ef133766e8a1"}},
-	"darwin-aarch64":  {SHA256: "a2656a2d950ab10f9aa5bc2d4400149e31e7d9d6e378843b9e19617b412d4dac", Files: map[string]string{"mallet": "d077915c3b078361f9755eb7ce6e548ec7c988a05f7ccddebd66ba9c7e54c46d", "wedge": "b4a3de0db569cfb0ea30775d6c99a3ff23d895457be15285f010fe388a488061"}},
-	"windows-x86_64":  {SHA256: "1be785775b1295150ad17f1c23aacbe9410ca3c9e4ac231995411e62b29e7b51", Files: map[string]string{"mallet.exe": "300c78673bc62d33327a8aa606da1ad68fc96ec2c3a606723bec39ac65787f66", "wedge.exe": "9cb5e705bed68d9f35ec901c9f91681e5d594759fa883ebb3b552dba316fcc1b", "wedge-gui.exe": "5b334f9ab63ed065f06a51402e501471080d2217269d6eef3418fa96e7f78bf8"}},
-	"windows-aarch64": {SHA256: "4c9c8dfa4b68640bd68f5fbc00f112d0be8683665508b7fa450546326a611821", Files: map[string]string{"mallet.exe": "46c4985297fa4eab0b4abe99d829a3caaf0857f8eb615d9363940bc285ed5d50", "wedge.exe": "180dce9d3f00a932a5f46a7c404f2a9824e369ecc6376603893dd3257fdd93ad", "wedge-gui.exe": "ab6b1912190e0d830a8c5e8b1b42bc0368cadea21cc7cbc584e5e1e0a309cb7f"}},
+	"linux-x86_64":    {SHA256: "289cc5c9dcbc0f7d05a86f3e1e6c4f9f62d7e1d1cf597e93484f410c19260892", Files: map[string]string{"mallet": "715ffac9e40d8657fe07d165213aa8736b12709ca91cceb557d1d3780b1070c4", "wedge": "4ca0e2b8263bec3e9f882b369323c5e74589648c9fc9e27edea93984deb24b0e"}},
+	"linux-aarch64":   {SHA256: "b245495599be1d008608371e1c711b9e2c300f28f4e6a20fb91c0845a87fed5c", Files: map[string]string{"mallet": "adf7ec9fa1b90a3b7594817ab66bcca2f1b07ae3ce38bd8c59758e8f525a79a8", "wedge": "731b681bf073e798088d88830d455f825f437d11b09d7d2842330d269fadc237"}},
+	"darwin-x86_64":   {SHA256: "6aae0572945c09fab368b180df6aca80bc6f4600c4ae652bd760f087a3cb0e6e", Files: map[string]string{"mallet": "adcf7b4864e55d4f71b48042217b443a2245adb8f3bdbca9f9014bfa7786f12b", "wedge": "c823a85d574eb9259277fd930519b9474a6a6acc17ab8d5f381fc60f95364f83"}},
+	"darwin-aarch64":  {SHA256: "4f0de74cb61bf872547b588500e5974133a0a2dfd0fe70ee7b2d3db27651f6df", Files: map[string]string{"mallet": "06b5b177097ce60ab478f545936ad503787ed9229488d41520db5d777916c9a1", "wedge": "6508e6ce567279685f10843380886a36892da14543a40cd147d7468b2a98db1e"}},
+	"windows-x86_64":  {SHA256: "df6871d5ab5316663d98b6a1e3f9887523e2d0e7ba9de48f5252feba284e0661", Files: map[string]string{"mallet.exe": "f7a1c4241002446d010512018d819c84c2f952d718ba0a88fd47d4cbaa3592b4", "wedge.exe": "01dee256df67f531fe9b919ab2992208b59fae420d7b2b880573d01cc1e7b7f4", "wedge-gui.exe": "5611179cfb102f14f6cd974db8d8ec1cacc2f12368ef36939abd6835f6fd0923"}},
+	"windows-aarch64": {SHA256: "645d93243c5dacd33f7f5b02a46c05eac8fe7f534f36afb1f6640a26def7499c", Files: map[string]string{"mallet.exe": "33f86a4065184c7d53b0d1ddb6e453b871904ae32093441f812ab8432f2b359a", "wedge.exe": "a36d9c6e587edc4fb38b4cc819c98cfff2e42ec514ecff71a7d75b8141f34df0", "wedge-gui.exe": "15be22629dae8fc1bdcbeeba42be650356327a9b374cbc0d7856ed6e41f28505"}},
 }
 
 // Tool is the pinned release as it applies to goos/goarch; ok is false where

@@ -21,7 +21,7 @@ func TestLayout(t *testing.T) {
 		l.LockPath():                      filepath.Join(root, ".lock"),
 		l.ExtractsDir():                   filepath.Join(root, "extract"),
 		l.ExtractPath("fzf@14"):           filepath.Join(root, "extract", "fzf@14"),
-		l.LatestPath("fzf@14"):            filepath.Join(root, "extract", "fzf@14", "latest"),
+		l.VersionFilePath("fzf@14"):       filepath.Join(root, "extract", "fzf@14", "version"),
 		l.VersionPath("fzf@14", "14.1.0"): filepath.Join(root, "extract", "fzf@14", "14.1.0"),
 		l.StagePath("fzf@14", "14.1.0"):   filepath.Join(root, "extract", "fzf@14", ".14.1.0.new"),
 		l.DownloadsDir():                  filepath.Join(root, "download"),

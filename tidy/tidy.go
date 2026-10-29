@@ -65,7 +65,7 @@ func FindBroken(m *manifest.Manifest, d Dirs) []Broken {
 		extractPath := filepath.Join(d.Extracts, key)
 		_, err := os.Lstat(extractPath)
 		extractMissing := os.IsNotExist(err)
-		if target, ok := pointer.Target(filepath.Join(extractPath, layout.Latest)); ok {
+		if target, ok := pointer.Target(filepath.Join(extractPath, layout.VersionFile)); ok {
 			_, err := os.Stat(target)
 			extractMissing = os.IsNotExist(err)
 		}
@@ -174,7 +174,7 @@ type OrphanExtract struct {
 var leftover = regexp.MustCompile(`^\.(.+?)(\.new|\.\d+\.(old|failed))$`)
 
 // FindOrphanExtracts lists what no install is on: extract dirs the manifest
-// does not name, leftovers, and inside an install all but latest and its target.
+// does not name, leftovers, and inside an install all but its version file and its target.
 func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtract {
 	entries, err := os.ReadDir(extractsDir)
 	if err != nil {
@@ -194,7 +194,7 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 			orphans = append(orphans, OrphanExtract{Key: e.Name(), Path: path})
 			continue
 		}
-		target, ok := pointer.Target(filepath.Join(path, layout.Latest))
+		target, ok := pointer.Target(filepath.Join(path, layout.VersionFile))
 		if !ok {
 			continue
 		}
@@ -203,7 +203,7 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 			continue
 		}
 		for _, v := range inner {
-			if v.Name() != layout.Latest && v.Name() != filepath.Base(target) {
+			if v.Name() != layout.VersionFile && v.Name() != filepath.Base(target) {
 				orphans = append(orphans, OrphanExtract{Key: e.Name(), Leftover: true, Path: filepath.Join(path, v.Name())})
 			}
 		}
@@ -211,10 +211,10 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 	return orphans
 }
 
-// PruneInstall removes from an install's dir all but its latest pointer and the
+// PruneInstall removes from an install's dir all but its version file and the
 // version it names, and returns what would not go.
 func PruneInstall(keyDir string) (stuck []Stuck) {
-	target, ok := pointer.Target(filepath.Join(keyDir, layout.Latest))
+	target, ok := pointer.Target(filepath.Join(keyDir, layout.VersionFile))
 	if !ok {
 		return nil
 	}
@@ -223,7 +223,7 @@ func PruneInstall(keyDir string) (stuck []Stuck) {
 		return []Stuck{{Path: keyDir, Err: err}}
 	}
 	for _, e := range entries {
-		if e.Name() == layout.Latest || e.Name() == filepath.Base(target) {
+		if e.Name() == layout.VersionFile || e.Name() == filepath.Base(target) {
 			continue
 		}
 		path := filepath.Join(keyDir, e.Name())

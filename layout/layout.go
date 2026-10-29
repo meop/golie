@@ -5,7 +5,7 @@
 //	bin/                          the tool and its shims; the one dir on PATH
 //	vendor/wedge/                mallet and its templates; never on PATH
 //	extract/<key>/<version>/      one version of one install, unpacked
-//	extract/<key>/latest          a pointer file to the version installed, which shims are stamped through
+//	extract/<key>/version         the pointer file naming the version installed, which shims are stamped through
 //	extract/<key>/.<version>.new  a version being unpacked; never there between ops
 //	download/<source>/<version>/  the release assets it was unpacked from
 //	manifest.json, .lock
@@ -48,14 +48,17 @@ func (l Layout) ShimDir() (string, error) { return l.made("vendor", "wedge") }
 // says something was installed.
 func (l Layout) ExtractsDir() string { return filepath.Join(l.Root, "extract") }
 
-// ExtractPath holds every version of one install, and its latest pointer.
+// ExtractPath holds every version of one install, and its version file.
 func (l Layout) ExtractPath(key string) string { return filepath.Join(l.ExtractsDir(), key) }
 
-// LatestPath is the pointer file to the version of key installed, which shims are stamped through.
-func (l Layout) LatestPath(key string) string { return filepath.Join(l.ExtractPath(key), Latest) }
+// VersionFilePath is the pointer file naming the version of key installed,
+// which shims are stamped through.
+func (l Layout) VersionFilePath(key string) string {
+	return filepath.Join(l.ExtractPath(key), VersionFile)
+}
 
-// Latest is the name of an install's pointer to its version.
-const Latest = "latest"
+// VersionFile is the name of an install's pointer file to its version.
+const VersionFile = "version"
 
 // VersionPath is where one version of key is unpacked.
 func (l Layout) VersionPath(key, version string) string {

@@ -9,7 +9,7 @@
 // could not re-point, leaving a manifest that claimed a version that was not
 // on disk and had forgotten a shim that was.
 //
-// This is also why the version a Point moves the latest pointer off is removed
+// This is also why the version a Point moves the version file off is removed
 // only after the manifest write: every undo here restores from it.
 package journal
 

@@ -125,14 +125,14 @@ func TestPlaceOfAVersionAlreadyThereGoesBesideItAndUndoRemovesOnlyTheNewOne(t *t
 func TestPointMovesThePointerAndUndoMovesItBackOrRemovesIt(t *testing.T) {
 	key := t.TempDir()
 	one, two := filepath.Join(key, "0.70"), filepath.Join(key, "0.71")
-	latest := filepath.Join(key, "latest")
-	points := func() string { dir, _ := pointer.Target(latest); return dir }
+	vfile := filepath.Join(key, "version")
+	points := func() string { dir, _ := pointer.Target(vfile); return dir }
 
-	first, err := Point(latest, one)
+	first, err := Point(vfile, one)
 	if err != nil {
 		t.Fatal(err)
 	}
-	undo, err := Point(latest, two)
+	undo, err := Point(vfile, two)
 	if err != nil || points() != two {
 		t.Fatalf("after the move: %s, %v", points(), err)
 	}
@@ -142,7 +142,7 @@ func TestPointMovesThePointerAndUndoMovesItBackOrRemovesIt(t *testing.T) {
 	if err := first(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Lstat(latest); !os.IsNotExist(err) {
+	if _, err := os.Lstat(vfile); !os.IsNotExist(err) {
 		t.Error("undoing the first pointer left it")
 	}
 }

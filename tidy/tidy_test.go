@@ -210,13 +210,13 @@ func TestOrphanDownloads(t *testing.T) {
 	}
 }
 
-func TestOrphanExtractsInsideAnInstallWithALatestPointer(t *testing.T) {
+func TestOrphanExtractsInsideAnInstallWithAVersionFile(t *testing.T) {
 	m, d := state(t)
 	key := filepath.Join(d.Extracts, "fzf")
 	for _, p := range []string{"0.69.0/fzf", "0.70.0/fzf", ".0.71.0.new/fzf", "loose"} {
 		touch(t, filepath.Join(key, p))
 	}
-	if err := pointer.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+	if err := pointer.Point(filepath.Join(key, layout.VersionFile), filepath.Join(key, "0.70.0")); err != nil {
 		t.Fatal(err)
 	}
 	var got []string
@@ -231,10 +231,10 @@ func TestOrphanExtractsInsideAnInstallWithALatestPointer(t *testing.T) {
 	}
 }
 
-func TestBrokenWhenTheLatestPointerNamesNothing(t *testing.T) {
+func TestBrokenWhenTheVersionFileNamesNothing(t *testing.T) {
 	m, d := state(t)
 	key := filepath.Join(d.Extracts, "fzf")
-	if err := pointer.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+	if err := pointer.Point(filepath.Join(key, layout.VersionFile), filepath.Join(key, "0.70.0")); err != nil {
 		t.Fatal(err)
 	}
 	var missing bool
@@ -242,11 +242,11 @@ func TestBrokenWhenTheLatestPointerNamesNothing(t *testing.T) {
 		missing = missing || (b.Key == "fzf" && b.Issue == "missing extract")
 	}
 	if !missing {
-		t.Error("a latest pointer to no version read as an install")
+		t.Error("a version file to no version read as an install")
 	}
 }
 
-func TestAnInstallWithNoLatestPointerIsWholeWhileItsDirIsThere(t *testing.T) {
+func TestAnInstallWithNoVersionFileIsWholeWhileItsDirIsThere(t *testing.T) {
 	m, d := state(t)
 	for _, b := range FindBroken(m, d) {
 		if b.Issue == "missing extract" {
@@ -258,7 +258,7 @@ func TestAnInstallWithNoLatestPointerIsWholeWhileItsDirIsThere(t *testing.T) {
 	}
 }
 
-func TestPruneInstallKeepsOnlyTheLatestPointerAndItsVersion(t *testing.T) {
+func TestPruneInstallKeepsOnlyTheVersionFileAndItsVersion(t *testing.T) {
 	_, d := state(t)
 	key := filepath.Join(d.Extracts, "fzf")
 	for _, p := range []string{"0.69.0/fzf", "0.70.0/fzf", "ripgrep-15.2.0/rg", "loose"} {
@@ -267,7 +267,7 @@ func TestPruneInstallKeepsOnlyTheLatestPointerAndItsVersion(t *testing.T) {
 	if stuck := PruneInstall(key); len(stuck) != 0 || !exists(filepath.Join(key, "loose")) {
 		t.Fatalf("an install with no pointer was pruned: %v", stuck)
 	}
-	if err := pointer.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+	if err := pointer.Point(filepath.Join(key, layout.VersionFile), filepath.Join(key, "0.70.0")); err != nil {
 		t.Fatal(err)
 	}
 	if stuck := PruneInstall(key); len(stuck) != 0 {
@@ -281,7 +281,7 @@ func TestPruneInstallKeepsOnlyTheLatestPointerAndItsVersion(t *testing.T) {
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	if !slices.Equal(names, []string{"0.70.0", "latest"}) {
+	if !slices.Equal(names, []string{"0.70.0", "version"}) {
 		t.Errorf("after the prune: %v", names)
 	}
 }

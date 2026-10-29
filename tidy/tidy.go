@@ -18,8 +18,8 @@ import (
 	"strings"
 
 	"github.com/meop/golie/layout"
-	"github.com/meop/golie/link"
 	"github.com/meop/golie/manifest"
+	"github.com/meop/golie/pointer"
 )
 
 // Dirs is the part of a state directory tidy looks at.
@@ -65,7 +65,7 @@ func FindBroken(m *manifest.Manifest, d Dirs) []Broken {
 		extractPath := filepath.Join(d.Extracts, key)
 		_, err := os.Lstat(extractPath)
 		extractMissing := os.IsNotExist(err)
-		if target, ok := link.Target(filepath.Join(extractPath, layout.Latest)); ok {
+		if target, ok := pointer.Target(filepath.Join(extractPath, layout.Latest)); ok {
 			_, err := os.Stat(target)
 			extractMissing = os.IsNotExist(err)
 		}
@@ -194,7 +194,7 @@ func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtrac
 			orphans = append(orphans, OrphanExtract{Key: e.Name(), Path: path})
 			continue
 		}
-		target, ok := link.Target(filepath.Join(path, layout.Latest))
+		target, ok := pointer.Target(filepath.Join(path, layout.Latest))
 		if !ok {
 			continue
 		}

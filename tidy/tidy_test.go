@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/meop/golie/layout"
-	"github.com/meop/golie/link"
 	"github.com/meop/golie/manifest"
+	"github.com/meop/golie/pointer"
 )
 
 // state is a state directory with fzf (two shims) and fzf@14 installed.
@@ -210,13 +210,13 @@ func TestOrphanDownloads(t *testing.T) {
 	}
 }
 
-func TestOrphanExtractsInsideAnInstallWithALatestLink(t *testing.T) {
+func TestOrphanExtractsInsideAnInstallWithALatestPointer(t *testing.T) {
 	m, d := state(t)
 	key := filepath.Join(d.Extracts, "fzf")
 	for _, p := range []string{"0.69.0/fzf", "0.70.0/fzf", ".0.71.0.new/fzf", "loose"} {
 		touch(t, filepath.Join(key, p))
 	}
-	if err := link.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+	if err := pointer.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
 		t.Fatal(err)
 	}
 	var got []string
@@ -231,10 +231,10 @@ func TestOrphanExtractsInsideAnInstallWithALatestLink(t *testing.T) {
 	}
 }
 
-func TestBrokenWhenTheLatestLinkPointsAtNothing(t *testing.T) {
+func TestBrokenWhenTheLatestPointerNamesNothing(t *testing.T) {
 	m, d := state(t)
 	key := filepath.Join(d.Extracts, "fzf")
-	if err := link.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
+	if err := pointer.Point(filepath.Join(key, layout.Latest), filepath.Join(key, "0.70.0")); err != nil {
 		t.Fatal(err)
 	}
 	var missing bool
@@ -242,11 +242,11 @@ func TestBrokenWhenTheLatestLinkPointsAtNothing(t *testing.T) {
 		missing = missing || (b.Key == "fzf" && b.Issue == "missing extract")
 	}
 	if !missing {
-		t.Error("a latest link to no version read as an install")
+		t.Error("a latest pointer to no version read as an install")
 	}
 }
 
-func TestAnInstallWithNoLatestLinkIsWholeWhileItsDirIsThere(t *testing.T) {
+func TestAnInstallWithNoLatestPointerIsWholeWhileItsDirIsThere(t *testing.T) {
 	m, d := state(t)
 	for _, b := range FindBroken(m, d) {
 		if b.Issue == "missing extract" {

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/meop/golie/pointer"
 )
 
 func TestRollbackReversesNewestFirst(t *testing.T) {
@@ -120,28 +122,27 @@ func TestPlaceOfAVersionAlreadyThereGoesBesideItAndUndoRemovesOnlyTheNewOne(t *t
 	}
 }
 
-func TestPointMovesTheLinkAndUndoMovesItBackOrRemovesIt(t *testing.T) {
+func TestPointMovesThePointerAndUndoMovesItBackOrRemovesIt(t *testing.T) {
 	key := t.TempDir()
 	one, two := filepath.Join(key, "0.70"), filepath.Join(key, "0.71")
-	write(t, filepath.Join(one, "fzf"), "0.70")
-	write(t, filepath.Join(two, "fzf"), "0.71")
 	latest := filepath.Join(key, "latest")
+	points := func() string { dir, _ := pointer.Target(latest); return dir }
 
 	first, err := Point(latest, one)
 	if err != nil {
 		t.Fatal(err)
 	}
 	undo, err := Point(latest, two)
-	if err != nil || read(t, filepath.Join(latest, "fzf")) != "0.71" {
-		t.Fatalf("after the move: %v", err)
+	if err != nil || points() != two {
+		t.Fatalf("after the move: %s, %v", points(), err)
 	}
-	if err := undo(); err != nil || read(t, filepath.Join(latest, "fzf")) != "0.70" {
-		t.Fatalf("the undo did not move it back: %v", err)
+	if err := undo(); err != nil || points() != one {
+		t.Fatalf("the undo did not move it back: %s, %v", points(), err)
 	}
 	if err := first(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Lstat(latest); !os.IsNotExist(err) || read(t, filepath.Join(one, "fzf")) != "0.70" {
-		t.Error("undoing the first link left it, or took its target")
+	if _, err := os.Lstat(latest); !os.IsNotExist(err) {
+		t.Error("undoing the first pointer left it")
 	}
 }

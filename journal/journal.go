@@ -9,7 +9,7 @@
 // could not re-point, leaving a manifest that claimed a version that was not
 // on disk and had forgotten a shim that was.
 //
-// This is also why the version a Point moves the latest link off is removed
+// This is also why the version a Point moves the latest pointer off is removed
 // only after the manifest write: every undo here restores from it.
 package journal
 
@@ -19,7 +19,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/meop/golie/link"
+	"github.com/meop/golie/pointer"
 	"github.com/meop/golie/shim"
 )
 
@@ -78,17 +78,17 @@ func Place(stage, dir string) (placed string, undo func() error, err error) {
 	return placed, func() error { return os.RemoveAll(placed) }, nil
 }
 
-// Point moves the link at path to dir, and returns the undo.
+// Point moves the pointer at path to dir, and returns the undo.
 func Point(path, dir string) (undo func() error, err error) {
-	old, had := link.Target(path)
-	if err := link.Point(path, dir); err != nil {
+	old, had := pointer.Target(path)
+	if err := pointer.Point(path, dir); err != nil {
 		return nil, err
 	}
 	return func() error {
 		if had {
-			return link.Point(path, old)
+			return pointer.Point(path, old)
 		}
-		return link.Remove(path)
+		return pointer.Remove(path)
 	}, nil
 }
 

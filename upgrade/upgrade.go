@@ -14,19 +14,16 @@
 package upgrade
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/meop/golie/fetch"
+	"github.com/meop/golie/sig"
 )
 
 // Self is a tool that upgrades itself.
@@ -43,6 +40,10 @@ type Self struct {
 	// Path returns the running binary. Leave it nil for the process's own
 	// executable; a test names a file of its own.
 	Path func() (string, error)
+	// Key is the armored OpenPGP key the release's SHA256SUMS is signed with,
+	// in SHA256SUMS.sig beside it: sig.ReleaseKey for a meop tool. Leave it
+	// nil for a release that is not signed.
+	Key []byte
 }
 
 // NotSelfInstalledError is a tool refusing to upgrade a copy of itself that
@@ -111,23 +112,11 @@ func exeName(name string) string {
 	return name
 }
 
-// LatestTag asks which release is newest by where the release page's "latest"
-// address redirects to, which names the tag.
+// LatestTag asks which release is newest. See fetch.LatestTag.
 func (s Self) LatestTag(ctx context.Context) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.ReleasesURL+"latest", nil)
+	tag, err := fetch.LatestTag(ctx, s.ReleasesURL)
 	if err != nil {
-		return "", err
-	}
-	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	location := resp.Header.Get("Location")
-	tag := path.Base(location)
-	if resp.StatusCode < 300 || resp.StatusCode >= 400 || !strings.Contains(location, "/tag/") || tag == "" {
-		return "", fmt.Errorf("%s has no release to upgrade to (%s)", s.Name, resp.Status)
+		return "", fmt.Errorf("%s has no release to upgrade to: %w", s.Name, err)
 	}
 	return tag, nil
 }
@@ -154,7 +143,7 @@ func (s Self) Install(ctx context.Context, tag string, fetching func(asset strin
 	}
 	base := s.ReleasesURL + "download/" + tag + "/"
 	asset := s.Asset(tag)
-	sum, err := releaseChecksum(ctx, base+"SHA256SUMS", asset)
+	sum, err := ReleaseSum(ctx, base, "SHA256SUMS", s.Key, asset)
 	if err != nil {
 		return err
 	}
@@ -185,32 +174,24 @@ func (s Self) Install(ctx context.Context, tag string, fetching func(asset strin
 	return replaceSelf(fresh, self)
 }
 
-// releaseChecksum reads a release's SHA256SUMS and returns the line for asset.
-func releaseChecksum(ctx context.Context, url, asset string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+// ReleaseSum reads the checksum manifest sums from a release's download
+// path base, checks it against its detached signature sums+".sig" when key
+// is not nil, and returns the sha256 it lists for asset.
+func ReleaseSum(ctx context.Context, base, sums string, key []byte, asset string) (string, error) {
+	manifest, err := fetch.Get(ctx, base+sums)
 	if err != nil {
 		return "", err
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%s: %s", url, resp.Status)
-	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return "", err
-	}
-	scanner := bufio.NewScanner(strings.NewReader(string(body)))
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-		if len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == asset {
-			return fields[0], nil
+	if key != nil {
+		signature, err := fetch.Get(ctx, base+sums+".sig")
+		if err != nil {
+			return "", err
+		}
+		if err := sig.Verify(key, manifest, signature); err != nil {
+			return "", fmt.Errorf("%s: %w", base+sums, err)
 		}
 	}
-	return "", fmt.Errorf("the release's SHA256SUMS does not list %s", asset)
+	return fetch.SumFor(manifest, asset)
 }
 
 // replaceSelf moves src to dst, the running binary. Windows will not let a

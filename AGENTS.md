@@ -48,18 +48,27 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   match; `Extract` unpacks `.tar.gz` and `.zip` with a strip count, and fails
   on an entry that would leave the destination or is not a plain file or
   directory. Standard library only
-- `pinned/` — `Ensure` makes a directory hold a pinned tool's files, each with
-  its pinned sha256, and nothing else beside what `Options.Keep` names. `Read`
-  is the other direction, for `cmd/pin`
-- `wedge/` — the pinned wedge version and the digest of every platform's
-  archive and files; `Sync` is `pinned.Ensure` for it
+- `vendored/` — a `Release` is where a vendored tool's releases are and how
+  they are packed. `Ensure` installs the latest only where the directory holds
+  none, and otherwise asks nothing of the network; `Refresh` is the one call
+  that looks for a newer release, for a command the user runs to mean that.
+  Either installs only what passed its checks — the archive against the
+  release's manifest, the manifest against its signature when the tool names a
+  key — and leaves the directory holding the release's files, its `.version`
+  written last, and nothing else beside what `Options.Keep` names
+- `wedge/` — wedge's `vendored.Release` for a platform: its archive, the files
+  kept, and the release key
+- `sig/` — `Verify` checks a detached OpenPGP signature; `ReleaseKey` is the key
+  every meop release pipeline signs its `SHA256SUMS` with, built in and never
+  fetched. `internal/testsign` makes a throwaway key for tests
 - `shim/` — `Stamper` stamps a shim with the vendored `mallet`, and only
   replaces or removes a file it can tell is one of its own: one whose wedge
   trailer names a target under `Owned` (`StampedTarget` reads it). The trailer
   is wedge's format, never a string in its code, so a reworded message or a
   rename does not lose a tool its shims
 - `upgrade/` — `Self` reads the newest release from where `releases/latest`
-  redirects, checks the archive against the release's `SHA256SUMS`, and
+  redirects, checks the archive against the release's `SHA256SUMS` (and that
+  against `SHA256SUMS.sig` when it names a `Key`), and
   replaces the running binary. A tool that names `Dir`, where its installer
   puts it, upgrades only the copy there: one that runs from anywhere else is
   refused (`Check`, a `NotSelfInstalledError` the tool says in its own words)
@@ -91,7 +100,6 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   name: where names fold case (macOS, Windows) it can sit under a name an older layout left, as Go's `VERSION`
 - `ui/` — deferred separators; see the comments in `ui.go`
 - `lock/`, `home/` — small, and what their package comments say
-- `cmd/pin/` — prints a `pinned.Asset` entry for an archive URL
 
 ## Testing on a real host
 
@@ -106,17 +114,16 @@ CI runs the tests on Linux and Windows on x86_64 and arm64, and macOS on arm64. 
 
 ## Conventions
 
-- No GitHub API and no `gh` anywhere. A fetch is a plain https download of a
-  URL built from a pinned version, never a "latest", with one exception that
-  is the point of it: `upgrade` asks which release is newest
-- Nothing fetched is used before it is checked: an archive against its pinned
-  or published sha256, and a pinned tool's files against their own
-- **The check on a vendored tool is its contents, not its version.** A sha256
-  per file every time the tool is about to be used: cheaper than spawning it to
-  ask its version, and it catches a copy that was damaged or swapped, which a
-  version string does not. `.pin` in the directory records the version last
-  synced only so a wrong copy of *this* version can be told from an ordinary
-  copy of another, and said (`Options.Replacing`); it is never trusted
+- No GitHub API and no `gh` anywhere. Which release is newest is read from
+  where a release page's `latest` redirects, and every fetch is a plain https
+  download
+- **Nothing is pinned.** A vendored tool and a tool's own upgrade both take the
+  latest release, so a fix in one reaches the others without a golie release.
+  What a pin used to guarantee comes from the release instead: nothing fetched
+  is used before its archive matches the release's checksum manifest, and that
+  manifest its signature, where the release is signed
+- **Nothing goes online unasked.** A vendored tool is fetched where it is
+  missing, and otherwise moves only when the user runs the tool's `refresh`
 - No file or directory at the module root may differ from another only by
   case. Go refuses a module that has one — 0.1.0 shipped a `version` package
   beside the `VERSION` file and could not be fetched at all, which is why the
@@ -128,9 +135,7 @@ CI runs the tests on Linux and Windows on x86_64 and arm64, and macOS on arm64. 
   and names its commands stays in the tool; `manifest`, `layout`, `journal`
   and `tidy` never print or prompt
 
-## Bumping wedge
+## A new wedge release
 
-Change `wedge.Version`, then replace every entry of `wedge.Assets` with what
-`cmd/pin` prints for that release's six archives (`mallet` and `wedge`, and on
-Windows `mallet.exe`, `wedge.exe` and `wedge-gui.exe`). Both tools move to it
-when they take the new golie.
+Nothing to do here: a tool's `refresh` takes it. A new platform, or a change to
+how wedge names its archives or what is in them, is a change to `wedge.Release`.

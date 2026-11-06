@@ -1,36 +1,36 @@
 package wedge
 
 import (
-	"strings"
+	"slices"
 	"testing"
 )
 
-func TestTool(t *testing.T) {
+func TestRelease(t *testing.T) {
 	for _, tc := range []struct {
 		goos, goarch, want string
 		files              []string
 	}{
-		{"linux", "amd64", "wedge-0.5.2-linux-x86_64.tar.gz", []string{"mallet", "wedge"}},
-		{"linux", "arm64", "wedge-0.5.2-linux-aarch64.tar.gz", []string{"mallet", "wedge"}},
-		{"darwin", "arm64", "wedge-0.5.2-darwin-aarch64.tar.gz", []string{"mallet", "wedge"}},
-		{"darwin", "amd64", "wedge-0.5.2-darwin-x86_64.tar.gz", []string{"mallet", "wedge"}},
-		{"windows", "amd64", "wedge-0.5.2-windows-x86_64.zip", []string{"mallet.exe", "wedge.exe", "wedge-gui.exe"}},
-		{"windows", "arm64", "wedge-0.5.2-windows-aarch64.zip", []string{"mallet.exe", "wedge.exe", "wedge-gui.exe"}},
+		{"linux", "amd64", "wedge-0.5.4-linux-x86_64.tar.gz", []string{"mallet", "wedge"}},
+		{"linux", "arm64", "wedge-0.5.4-linux-aarch64.tar.gz", []string{"mallet", "wedge"}},
+		{"darwin", "arm64", "wedge-0.5.4-darwin-aarch64.tar.gz", []string{"mallet", "wedge"}},
+		{"windows", "amd64", "wedge-0.5.4-windows-x86_64.zip", []string{"mallet.exe", "wedge.exe", "wedge-gui.exe"}},
+		{"windows", "arm64", "wedge-0.5.4-windows-aarch64.zip", []string{"mallet.exe", "wedge.exe", "wedge-gui.exe"}},
 	} {
-		tool, ok := Tool(tc.goos, tc.goarch)
-		if !ok || !strings.HasSuffix(tool.Asset.URL, "/v0.5.2/"+tc.want) || len(tool.Asset.SHA256) != 64 {
-			t.Errorf("Tool(%s, %s) = %+v, %v", tc.goos, tc.goarch, tool.Asset.URL, ok)
+		r, ok := Release(tc.goos, tc.goarch)
+		if !ok {
+			t.Errorf("Release(%s, %s) names nothing", tc.goos, tc.goarch)
+			continue
 		}
-		if len(tool.Asset.Files) != len(tc.files) {
-			t.Errorf("Tool(%s, %s) pins %d files, want %v", tc.goos, tc.goarch, len(tool.Asset.Files), tc.files)
+		if got, _ := r.Archive("0.5.4"); got != tc.want {
+			t.Errorf("Release(%s, %s) archive = %s, want %s", tc.goos, tc.goarch, got, tc.want)
 		}
-		for _, f := range tc.files {
-			if len(tool.Asset.Files[f]) != 64 {
-				t.Errorf("Tool(%s, %s) has no digest for %s", tc.goos, tc.goarch, f)
-			}
+		if !slices.Equal(r.Files, tc.files) || r.Key == nil {
+			t.Errorf("Release(%s, %s) = %v, key %v", tc.goos, tc.goarch, r.Files, r.Key != nil)
 		}
 	}
-	if _, ok := Tool("freebsd", "amd64"); ok {
-		t.Error("wedge ships nothing for freebsd, and Tool named something")
+	for _, p := range [][2]string{{"darwin", "amd64"}, {"freebsd", "amd64"}, {"linux", "386"}} {
+		if _, ok := Release(p[0], p[1]); ok {
+			t.Errorf("wedge ships nothing for %s/%s, and Release named something", p[0], p[1])
+		}
 	}
 }

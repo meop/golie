@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/meop/golie/internal/testsign"
 )
 
 // selfArchive builds a release archive holding one file, goup, as the release
@@ -55,14 +57,26 @@ func selfArchive(t *testing.T, body string) []byte {
 // the tag's download path serves the archive for this platform and a
 // SHA256SUMS naming sum for it.
 func serveReleases(t *testing.T, tag string, archive []byte, sum string) Self {
+	return serveSignedReleases(t, tag, archive, sum, nil)
+}
+
+// serveSignedReleases is serveReleases with SHA256SUMS.sig beside the manifest,
+// what sign makes of it, when sign is not nil.
+func serveSignedReleases(t *testing.T, tag string, archive []byte, sum string, sign func([]byte) []byte) Self {
 	t.Helper()
+	manifest := []byte("0000  some-other-asset.tar.gz\n" + sum + "  " + (Self{Name: "tool"}).Asset(tag) + "\n")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/latest", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/tag/"+tag, http.StatusFound)
 	})
 	mux.HandleFunc("/download/"+tag+"/SHA256SUMS", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("0000  some-other-asset.tar.gz\n" + sum + "  " + (Self{Name: "tool"}).Asset(tag) + "\n"))
+		_, _ = w.Write(manifest)
 	})
+	if sign != nil {
+		mux.HandleFunc("/download/"+tag+"/SHA256SUMS.sig", func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write(sign(manifest))
+		})
+	}
 	mux.HandleFunc("/download/"+tag+"/"+(Self{Name: "tool"}).Asset(tag), func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(archive)
 	})
@@ -122,6 +136,40 @@ func TestInstallSelfRefusesAnArchiveThatDoesNotMatchItsChecksum(t *testing.T) {
 	}
 	if got, _ := os.ReadFile(self); string(got) != "old goup" {
 		t.Errorf("the running binary was replaced by an archive that failed its check: %q", got)
+	}
+}
+
+func TestInstallSelfChecksTheManifestsSignatureWhenItNamesAKey(t *testing.T) {
+	archive := selfArchive(t, "new goup")
+	sum := sha256.Sum256(archive)
+	key, sign := testsign.New(t)
+	_, otherSign := testsign.New(t)
+	for name, tc := range map[string]struct {
+		sign func([]byte) []byte
+		ok   bool
+	}{
+		"signed with the key":      {sign, true},
+		"signed with another":      {otherSign, false},
+		"with no signature at all": {nil, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			self := fakeSelf(t)
+			s := serveSignedReleases(t, "v1.2.3", archive, hex.EncodeToString(sum[:]), tc.sign)
+			s.Path = func() (string, error) { return self, nil }
+			s.Key = key
+
+			err := s.Install(context.Background(), "v1.2.3", nil)
+			if (err == nil) != tc.ok {
+				t.Fatalf("Install = %v", err)
+			}
+			want := "old goup"
+			if tc.ok {
+				want = "new goup"
+			}
+			if got, _ := os.ReadFile(self); string(got) != want {
+				t.Errorf("the running binary is %q, want %q", got, want)
+			}
+		})
 	}
 }
 

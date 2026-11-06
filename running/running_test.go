@@ -37,15 +37,26 @@ func TestUnder(t *testing.T) {
 	}
 }
 
-// macOS's temp dir is a symlink, and a program is named by the path it was started from
-func TestUnderASymlinkedDir(t *testing.T) {
+// a program is named by the path it was started from, which can reach its dir through a link the dir asked about
+// does not, or the other way around: macOS's temp dir is one, and so is Windows' short name for a long one
+func TestUnderThroughALink(t *testing.T) {
 	real := t.TempDir()
 	link := filepath.Join(t.TempDir(), "link")
 	if err := os.Symlink(real, link); err != nil {
 		t.Skip(err)
 	}
-	program := filepath.Join(real, "bin", "tool")
-	if got := Under([]string{program}, link); got != program {
-		t.Errorf("Under(link) = %q, want %q", got, program)
+	if err := os.MkdirAll(filepath.Join(real, "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(real, "bin", "tool"), nil, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ program, dir string }{
+		{filepath.Join(real, "bin", "tool"), link},
+		{filepath.Join(link, "bin", "tool"), real},
+	} {
+		if got := Under([]string{tc.program}, tc.dir); got != tc.program {
+			t.Errorf("Under(%s) with %s running = %q", tc.dir, tc.program, got)
+		}
 	}
 }

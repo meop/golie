@@ -15,17 +15,22 @@ import (
 // an OS this package does not know, there are none.
 func Programs() []string { return programs() }
 
-// Under is the first of programs that is inside dir, or "".
+// Under is the first of programs that is inside dir, or "". A path through a
+// link is compared as the path it resolves to as well, on both sides.
 func Under(programs []string, dir string) string {
-	dirs := []string{filepath.Clean(dir)}
-	if resolved, err := filepath.EvalSymlinks(dir); err == nil && resolved != dirs[0] {
-		dirs = append(dirs, resolved)
+	dir = filepath.Clean(dir)
+	resolvedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		resolvedDir = dir
 	}
 	for _, p := range programs {
-		for _, d := range dirs {
-			if within(filepath.Clean(p), d) {
-				return p
-			}
+		if within(filepath.Clean(p), dir) || within(filepath.Clean(p), resolvedDir) {
+			return p
+		}
+	}
+	for _, p := range programs {
+		if resolved, err := filepath.EvalSymlinks(p); err == nil && within(resolved, resolvedDir) {
+			return p
 		}
 	}
 	return ""

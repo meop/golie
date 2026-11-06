@@ -131,3 +131,25 @@ func TestCreateLeavesAShimMalletWouldStampTheSameAndRestampsOtherwise(t *testing
 		t.Error("a shim from an older template was left as it was")
 	}
 }
+
+func TestRestampStampsOnlyItsOwnShimsFromAnOlderTemplate(t *testing.T) {
+	s := stamper(t)
+	source := filepath.Join(s.Owned, "fzf", "version", ExeName("fzf"))
+	write(t, filepath.Join(s.MalletDir, ExeName("wedge")), "a template that names "+source)
+	write(t, filepath.Join(s.MalletDir, ExeName("mallet")), "not a program")
+	write(t, s.Path("current"), stamped(source))
+	write(t, s.Path("with-args"), stamped(filepath.Join(s.Owned, "pwsh", "pwsh.exe"), "-nol"))
+	write(t, s.Path("theirs"), stamped("/somewhere/else/theirs"))
+	write(t, s.Path("plain"), "somebody else's binary")
+
+	for _, file := range []string{"current", "with-args", "theirs", "plain", "absent"} {
+		if did, err := s.Restamp(file); did || err != nil {
+			t.Errorf("%s: Restamp = %v, %v, want it left alone", file, did, err)
+		}
+	}
+
+	write(t, filepath.Join(s.MalletDir, ExeName("wedge")), "a newer template")
+	if did, err := s.Restamp("current"); did || err == nil {
+		t.Errorf("a shim from an older template: Restamp = %v, %v, want mallet run", did, err)
+	}
+}

@@ -18,7 +18,7 @@ import (
 	"testing"
 )
 
-// selfArchive builds a release archive holding one file, gotm, as the release
+// selfArchive builds a release archive holding one file, goup, as the release
 // pipeline packs it for this platform.
 func selfArchive(t *testing.T, body string) []byte {
 	t.Helper()
@@ -74,7 +74,7 @@ func serveReleases(t *testing.T, tag string, archive []byte, sum string) Self {
 func fakeSelf(t *testing.T) string {
 	t.Helper()
 	self := filepath.Join(t.TempDir(), exeName("tool"))
-	if err := os.WriteFile(self, []byte("old gotm"), 0755); err != nil {
+	if err := os.WriteFile(self, []byte("old goup"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	return self
@@ -89,7 +89,7 @@ func TestLatestTagReadsTheRedirect(t *testing.T) {
 
 func TestInstallSelfReplacesTheRunningBinary(t *testing.T) {
 	self := fakeSelf(t)
-	archive := selfArchive(t, "new gotm")
+	archive := selfArchive(t, "new goup")
 	sum := sha256.Sum256(archive)
 	s := serveReleases(t, "v1.2.3", archive, hex.EncodeToString(sum[:]))
 	s.Path = func() (string, error) { return self, nil }
@@ -98,7 +98,7 @@ func TestInstallSelfReplacesTheRunningBinary(t *testing.T) {
 	if err := s.Install(context.Background(), "v1.2.3", func(a string) { fetched = append(fetched, a) }); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := os.ReadFile(self); string(got) != "new gotm" {
+	if got, _ := os.ReadFile(self); string(got) != "new goup" {
 		t.Errorf("the running binary is %q", got)
 	}
 	if len(fetched) != 1 || fetched[0] != s.Asset("v1.2.3") {
@@ -114,13 +114,13 @@ func TestInstallSelfReplacesTheRunningBinary(t *testing.T) {
 
 func TestInstallSelfRefusesAnArchiveThatDoesNotMatchItsChecksum(t *testing.T) {
 	self := fakeSelf(t)
-	s := serveReleases(t, "v1.2.3", selfArchive(t, "new gotm"), strings.Repeat("0", 64))
+	s := serveReleases(t, "v1.2.3", selfArchive(t, "new goup"), strings.Repeat("0", 64))
 	s.Path = func() (string, error) { return self, nil }
 
 	if err := s.Install(context.Background(), "v1.2.3", nil); err == nil {
 		t.Fatal("an archive that does not match the release's checksum was installed")
 	}
-	if got, _ := os.ReadFile(self); string(got) != "old gotm" {
+	if got, _ := os.ReadFile(self); string(got) != "old goup" {
 		t.Errorf("the running binary was replaced by an archive that failed its check: %q", got)
 	}
 }
@@ -130,7 +130,7 @@ func TestInstallSelfRefusesAnArchiveThatDoesNotMatchItsChecksum(t *testing.T) {
 func installedSelf(t *testing.T, dir string) string {
 	t.Helper()
 	self := filepath.Join(dir, exeName("tool"))
-	if err := os.WriteFile(self, []byte("old gotm"), 0755); err != nil {
+	if err := os.WriteFile(self, []byte("old goup"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	return self
@@ -139,7 +139,7 @@ func installedSelf(t *testing.T, dir string) string {
 func TestInstallSelfReplacesTheCopyItsInstallerPlaced(t *testing.T) {
 	dir := t.TempDir()
 	self := installedSelf(t, dir)
-	archive := selfArchive(t, "new gotm")
+	archive := selfArchive(t, "new goup")
 	sum := sha256.Sum256(archive)
 	s := serveReleases(t, "v1.2.3", archive, hex.EncodeToString(sum[:]))
 	s.Dir = dir
@@ -151,7 +151,7 @@ func TestInstallSelfReplacesTheCopyItsInstallerPlaced(t *testing.T) {
 	if err := s.Install(context.Background(), "v1.2.3", nil); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := os.ReadFile(self); string(got) != "new gotm" {
+	if got, _ := os.ReadFile(self); string(got) != "new goup" {
 		t.Errorf("the running binary is %q", got)
 	}
 }
@@ -181,7 +181,7 @@ func TestInstallSelfRefusesACopyItsInstallerDidNotPlace(t *testing.T) {
 			if err := s.Install(context.Background(), "v1.2.3", nil); !errors.As(err, &refused) {
 				t.Fatalf("Install = %v, want a NotSelfInstalledError", err)
 			}
-			if got, _ := os.ReadFile(elsewhere); string(got) != "old gotm" {
+			if got, _ := os.ReadFile(elsewhere); string(got) != "old goup" {
 				t.Errorf("a copy the installer did not place was replaced: %q", got)
 			}
 		})

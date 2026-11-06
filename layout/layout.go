@@ -1,5 +1,5 @@
 // Package layout names the directories of a tool's state directory
-// (~/.ghpm, ~/.gotm). Both tools lay theirs out the same way, which is what
+// (~/.ghpm, ~/.goup). Both tools lay theirs out the same way, which is what
 // lets one tidy clean either.
 //
 //	bin/                          the tool and its shims; the one dir on PATH

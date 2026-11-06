@@ -1,5 +1,5 @@
 // Package manifest is the record a tool keeps of what it installed: one file,
-// one entry per install, written only once an install is whole. ghpm and gotm
+// one entry per install, written only once an install is whole. ghpm and goup
 // keep the same file, so everything that reads it — list, sync, remove, tidy —
 // reads one contract.
 package manifest

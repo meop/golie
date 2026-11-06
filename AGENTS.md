@@ -1,6 +1,6 @@
 # AGENTS.md
 
-golie is the library ghpm and gotm share. A change here changes both, so a
+golie is the library ghpm and goup share. A change here changes both, so a
 package's behavior is documented where it lives and tested here, not in either
 tool.
 
@@ -71,7 +71,7 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   version, assets, and the shim → binary and font maps). Also what a key is
   (`fzf`, `fzf@14`), the pin level a pin holds an install to, and what a
   pinned install's shim is called. Its JSON field names are a contract: a
-  change to one is a change to every `~/.ghpm` and `~/.gotm` in use
+  change to one is a change to every `~/.ghpm` and `~/.goup` in use
 - `layout/` — the directories of a state directory: `bin`, `vendor`,
   `extract/<key>/<version>` and the `extract/<key>/version` file shims are
   stamped through, `download/<source>/<version>`, the manifest and
@@ -122,7 +122,7 @@ CI runs the tests on Linux, macOS and Windows. To run them on a machine of your 
   beside the `VERSION` file and could not be fetched at all, which is why the
   package is `vers`
 - A package takes the paths and names it needs as arguments. Nothing here
-  knows a tool's name or where its state lives, nor what a package is: gotm's
+  knows a tool's name or where its state lives, nor what a package is: goup's
   only one is `go`, and it passes that where ghpm passes a name
 - The backend is here and the conversation is not. What a tool prints, asks
   and names its commands stays in the tool; `manifest`, `layout`, `journal`

@@ -1,7 +1,7 @@
 # golie
 
 Go Library for Installing Executables. What [ghpm](https://github.com/meop/ghpm)
-and [gotm](https://github.com/meop/gotm) share: the parts of a tool that
+and [goup](https://github.com/meop/goup) share: the parts of a tool that
 installs other tools, and keeps itself and its own helpers current.
 
 ## Install

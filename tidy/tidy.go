@@ -23,8 +23,11 @@ import (
 	"github.com/meop/golie/running"
 )
 
-// programs is running.Programs, which a test stands in for.
-var programs = running.Programs
+// programs and held are running's, which a test stands in for.
+var (
+	programs = running.Programs
+	held     = running.Held
+)
 
 // Dirs is the part of a state directory tidy looks at.
 type Dirs struct {
@@ -150,7 +153,8 @@ func RemoveBroken(m *manifest.Manifest, b Broken, d Dirs) (changed bool, stuck [
 // FindOrphanShims lists the files in binDir that isShim says the tool
 // stamped and no manifest entry names. keep names files that are the tool's
 // without being an install's: itself. Anything isShim does not vouch for is
-// somebody else's and is never listed.
+// somebody else's and is never listed, and neither is one a program still runs
+// from: a shim a stamp set aside on Windows while it ran.
 func FindOrphanShims(m *manifest.Manifest, binDir string, keep []string, isShim func(path string) bool) []string {
 	expected := map[string]bool{}
 	for _, name := range keep {
@@ -168,7 +172,7 @@ func FindOrphanShims(m *manifest.Manifest, binDir string, keep []string, isShim 
 	var paths []string
 	for _, e := range entries {
 		full := filepath.Join(binDir, e.Name())
-		if !expected[e.Name()] && isShim(full) {
+		if !expected[e.Name()] && isShim(full) && !held(full) {
 			paths = append(paths, full)
 		}
 	}

@@ -149,6 +149,24 @@ func TestOrphanShims(t *testing.T) {
 	}
 }
 
+// a shim a stamp set aside while a program ran from it is not offered: windows would refuse it, every tidy, until the
+// program stopped
+func TestOrphanShimsLeavesOneAProgramRunsFrom(t *testing.T) {
+	m, d := state(t)
+	aside := filepath.Join(d.Bin, ".pwsh.exe.30268.old")
+	touch(t, aside)
+	was := held
+	held = func(path string) bool { return path == aside }
+	t.Cleanup(func() { held = was })
+	if got := FindOrphanShims(m, d.Bin, nil, func(string) bool { return true }); slices.Contains(got, aside) {
+		t.Errorf("FindOrphanShims = %v, though a program runs from %s", got, aside)
+	}
+	held = func(string) bool { return false }
+	if got := FindOrphanShims(m, d.Bin, nil, func(string) bool { return true }); !slices.Contains(got, aside) {
+		t.Errorf("FindOrphanShims = %v, without %s once nothing runs from it", got, aside)
+	}
+}
+
 func TestOrphanExtracts(t *testing.T) {
 	m, d := state(t)
 	touch(t, filepath.Join(d.Extracts, "gone", "x"))

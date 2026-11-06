@@ -99,9 +99,11 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   returned and asks. Inside an install it keeps the version file as a file, not by
   name: where names fold case (macOS, Windows) it can sit under a name an older layout left, as Go's `VERSION`.
   A version a running program was started from is never removed: a prune keeps it with an `InUse`, and a tidy does
-  not list it until the program has stopped
+  not list it until the program has stopped. Nor is a shim a program runs from, as Windows keeps one a stamp set
+  aside (`running.Held`)
 - `running/` — the programs running, by the path each was started from: `/proc` on Linux, `kern.procargs2` on
-  macOS, a process snapshot on Windows. A long-running server outlives the upgrade that replaced it, and its old
+  macOS, a process snapshot on Windows; and `Held`, a file Windows will not delete because a program runs from it,
+  which it names by the path it started from rather than the one it has now. A long-running server outlives the upgrade that replaced it, and its old
   binary has to stay: macOS's firewall drops connections to a program it can no longer read, and Windows will not
   delete a running program's file
 - `ui/` — deferred separators; see the comments in `ui.go`

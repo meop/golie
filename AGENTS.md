@@ -34,8 +34,8 @@ package added or removed, or a guarantee one makes.
 
 To cut a release: bump the version in `VERSION` and push to `main`. The CI
 pipeline (`.github/workflows/pipeline.yaml`) runs: Version check (skips the rest
-if `v<VERSION>` already exists) → Validate (fmt + lint + test, and the tests
-again on Windows and macOS) → Release, which creates a GPG-signed tag `v<VERSION>`. The
+if `v<VERSION>` already exists) → Validate (fmt + lint) and Test (on every platform
+and architecture ghpm and goup ship for, each on its own runner) → Release, which creates a GPG-signed tag `v<VERSION>`. The
 tag is the release: a Go module needs nothing else. Requires the
 `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE` repository secrets. Never create the tag
 by hand.
@@ -95,7 +95,7 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
 
 ## Testing on a real host
 
-CI runs the tests on Linux, macOS and Windows. To run them on a machine of your own over ssh:
+CI runs the tests on Linux and Windows on x86_64 and arm64, and macOS on arm64. To run them on a machine of your own over ssh:
 
 - Windows: build the test binary anywhere (`GOOS=windows go test -c -o <pkg>.test.exe ./<pkg>/`), copy it over and run
   it there. In PowerShell, quote a test flag whole (`'-test.v=true'`): PowerShell splits a bare `-test.v` at its dot.

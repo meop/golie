@@ -1,6 +1,7 @@
 package tidy
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -283,6 +284,45 @@ func TestPruneInstallKeepsOnlyTheVersionFileAndItsVersion(t *testing.T) {
 	}
 	if !slices.Equal(names, []string{"0.70.0", "version"}) {
 		t.Errorf("after the prune: %v", names)
+	}
+}
+
+// runningNow stands in for the programs running for one test
+func runningNow(t *testing.T, paths ...string) {
+	t.Helper()
+	was := programs
+	programs = func() []string { return paths }
+	t.Cleanup(func() { programs = was })
+}
+
+// a server started from the version an upgrade replaced keeps it, until a tidy once it has stopped
+func TestPruneInstallKeepsAVersionAProgramRunsFrom(t *testing.T) {
+	m, d := state(t)
+	key := filepath.Join(d.Extracts, "delish")
+	for _, p := range []string{"0.6.0/delishd", "0.6.1/delishd", "0.5.0/delishd"} {
+		touch(t, filepath.Join(key, p))
+	}
+	if err := pointer.Point(filepath.Join(key, layout.VersionFile), filepath.Join(key, "0.6.1")); err != nil {
+		t.Fatal(err)
+	}
+	server := filepath.Join(key, "0.6.0", "delishd")
+	runningNow(t, server, filepath.Join(key, "0.6.1", "delishd"))
+	stuck := PruneInstall(key)
+	var inUse InUse
+	if len(stuck) != 1 || stuck[0].Path != filepath.Join(key, "0.6.0") || !errors.As(stuck[0].Err, &inUse) || inUse.Program != server {
+		t.Fatalf("stuck = %v, want 0.6.0 in use by its delishd", stuck)
+	}
+	if !exists(server) || exists(filepath.Join(key, "0.5.0")) {
+		t.Error("the prune took the version in use, or left the one nothing runs from")
+	}
+
+	m.Extracts["delish"] = manifest.Entry{Version: "0.6.1", Bin: map[string]string{"delishd": "delishd"}}
+	if orphans := FindOrphanExtracts(m, d.Extracts); len(orphans) != 0 {
+		t.Errorf("tidy offered what a program runs from: %v", orphans)
+	}
+	runningNow(t)
+	if orphans := FindOrphanExtracts(m, d.Extracts); len(orphans) != 1 || orphans[0].Path != filepath.Join(key, "0.6.0") {
+		t.Errorf("once it stopped, orphans = %v, want 0.6.0", orphans)
 	}
 }
 

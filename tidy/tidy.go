@@ -20,7 +20,11 @@ import (
 	"github.com/meop/golie/layout"
 	"github.com/meop/golie/manifest"
 	"github.com/meop/golie/pointer"
+	"github.com/meop/golie/running"
 )
+
+// programs is running.Programs, which a test stands in for.
+var programs = running.Programs
 
 // Dirs is the part of a state directory tidy looks at.
 type Dirs struct {
@@ -54,6 +58,14 @@ type Stuck struct {
 	Path string
 	Err  error
 }
+
+// InUse is a Stuck's Err for a version a running program was started from. It
+// is kept, not failed: a later tidy removes it once the program has stopped.
+type InUse struct {
+	Program string
+}
+
+func (e InUse) Error() string { return "in use by " + e.Program }
 
 // FindBroken lists the installs the disk no longer bears out, by key. An
 // install with its extract dir gone is one item; an install that is only
@@ -175,7 +187,17 @@ var leftover = regexp.MustCompile(`^\.(.+?)(\.new|\.\d+\.(old|failed))$`)
 
 // FindOrphanExtracts lists what no install is on: extract dirs the manifest
 // does not name, leftovers, and inside an install all but its version file and its target.
+// What a running program was started from is in use, and not listed.
 func FindOrphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtract {
+	orphans := orphanExtracts(m, extractsDir)
+	if len(orphans) == 0 {
+		return orphans
+	}
+	progs := programs()
+	return slices.DeleteFunc(orphans, func(o OrphanExtract) bool { return inUse(progs, o.Path) != "" })
+}
+
+func orphanExtracts(m *manifest.Manifest, extractsDir string) []OrphanExtract {
 	entries, err := os.ReadDir(extractsDir)
 	if err != nil {
 		return nil
@@ -227,7 +249,8 @@ func kept(keyDir, name, target string) bool {
 }
 
 // PruneInstall removes from an install's dir all but its version file and the
-// version it names, and returns what would not go.
+// version it names, and returns what would not go: a version a running program
+// was started from stays, with an InUse for its Err.
 func PruneInstall(keyDir string) (stuck []Stuck) {
 	target, ok := pointer.Target(filepath.Join(keyDir, layout.VersionFile))
 	if !ok {
@@ -237,16 +260,28 @@ func PruneInstall(keyDir string) (stuck []Stuck) {
 	if err != nil {
 		return []Stuck{{Path: keyDir, Err: err}}
 	}
+	var progs []string
 	for _, e := range entries {
 		if kept(keyDir, e.Name(), target) {
 			continue
 		}
 		path := filepath.Join(keyDir, e.Name())
+		if progs == nil {
+			progs = programs()
+		}
+		if program := inUse(progs, path); program != "" {
+			stuck = append(stuck, Stuck{Path: path, Err: InUse{Program: program}})
+			continue
+		}
 		if err := os.RemoveAll(path); err != nil {
 			stuck = append(stuck, Stuck{Path: path, Err: err})
 		}
 	}
 	return stuck
+}
+
+func inUse(progs []string, path string) string {
+	return running.Under(progs, path)
 }
 
 // PruneExtract removes path, an extract dir or a leftover, never extractsDir.

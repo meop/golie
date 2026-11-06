@@ -97,7 +97,13 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   dirs, cached downloads) and what it claims that is gone (broken installs),
   and removes either. No output and no prompts: the tool shows what a `Find`
   returned and asks. Inside an install it keeps the version file as a file, not by
-  name: where names fold case (macOS, Windows) it can sit under a name an older layout left, as Go's `VERSION`
+  name: where names fold case (macOS, Windows) it can sit under a name an older layout left, as Go's `VERSION`.
+  A version a running program was started from is never removed: a prune keeps it with an `InUse`, and a tidy does
+  not list it until the program has stopped
+- `running/` — the programs running, by the path each was started from: `/proc` on Linux, `kern.procargs2` on
+  macOS, a process snapshot on Windows. A long-running server outlives the upgrade that replaced it, and its old
+  binary has to stay: macOS's firewall drops connections to a program it can no longer read, and Windows will not
+  delete a running program's file
 - `ui/` — deferred separators; see the comments in `ui.go`
 - `lock/`, `home/` — small, and what their package comments say
 

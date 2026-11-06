@@ -25,7 +25,8 @@ go get github.com/meop/golie
 | `layout` | Where a tool's state lives: `bin`, `vendor`, `extract/<key>/<version>` and its `version` file, `download/<source>/<version>` |
 | `pointer` | The `version` file a shim is stamped through, the same on every platform |
 | `journal` | All-or-nothing installs: every step recorded with its undo, rolled back unless the manifest was written |
-| `tidy` | Finds and removes broken installs and orphaned shims, extract dirs and downloads |
+| `tidy` | Finds and removes broken installs and orphaned shims, extract dirs and downloads, never a version a running program was started from |
+| `running` | The programs running, by the path each was started from, on Linux, macOS and Windows |
 | `ui` | One sink for output and prompts, with deferred blank lines |
 | `lock` | The one-process-at-a-time lock over a tool's state directory |
 | `home` | The user's home, with a guard that keeps tests out of the real one |

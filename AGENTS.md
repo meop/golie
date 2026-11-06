@@ -57,9 +57,7 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   replaces or removes a file it can tell is one of its own: one whose wedge
   trailer names a target under `Owned` (`StampedTarget` reads it). The trailer
   is wedge's format, never a string in its code, so a reworded message or a
-  rename does not lose a tool its shims. `Restamp` stamps one of its shims
-  again, to the target it names, when it was not stamped from the templates
-  vendored now
+  rename does not lose a tool its shims
 - `upgrade/` — `Self` reads the newest release from where `releases/latest`
   redirects, checks the archive against the release's `SHA256SUMS`, and
   replaces the running binary. A tool that names `Dir`, where its installer

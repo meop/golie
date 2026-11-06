@@ -56,42 +56,35 @@ func (s Stamper) IsShim(path string) bool {
 }
 
 func StampedTarget(path string) (target string, ok bool) {
-	target, _, ok = trailer(path)
-	return target, ok
-}
-
-// trailer reads the target a wedge shim names, and whether it was stamped with
-// arguments as well.
-func trailer(path string) (target string, args bool, ok bool) {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", false, false
+		return "", false
 	}
 	defer func() { _ = f.Close() }()
 	info, err := f.Stat()
 	if err != nil || info.IsDir() || info.Size() < 8 {
-		return "", false, false
+		return "", false
 	}
 	tail := make([]byte, 8)
 	if _, err := f.ReadAt(tail, info.Size()-8); err != nil {
-		return "", false, false
+		return "", false
 	}
 	magic := string(tail[4:])
 	if magic != "SHIM" && magic != "SHM2" {
-		return "", false, false
+		return "", false
 	}
 	n := int64(binary.LittleEndian.Uint32(tail[:4]))
 	if n == 0 || n+8 > info.Size() {
-		return "", false, false
+		return "", false
 	}
 	payload := make([]byte, n)
 	if _, err := f.ReadAt(payload, info.Size()-8-n); err != nil {
-		return "", false, false
+		return "", false
 	}
 	if magic == "SHM2" {
 		payload, _, _ = bytes.Cut(payload, []byte{0})
 	}
-	return string(payload), magic == "SHM2", true
+	return string(payload), true
 }
 
 // Create stamps the shim file that runs source. mallet picks the wedge
@@ -121,22 +114,6 @@ func (s Stamper) Create(file, source string, force bool) error {
 		return fmt.Errorf("mallet: %w: %s", err, bytes.TrimSpace(out))
 	}
 	return nil
-}
-
-// Restamp stamps the shim file again, to the target it already names, when it
-// is one of the tool's and not what mallet would stamp now: a new wedge reaches
-// the shims of packages no update touches. A shim stamped with arguments is
-// left alone, as Create never stamps one. It reports whether it stamped.
-func (s Stamper) Restamp(file string) (bool, error) {
-	target := s.Path(file)
-	source, args, ok := trailer(target)
-	if !ok || args || !s.IsShim(target) || s.stampedFromTemplate(target, source) {
-		return false, nil
-	}
-	if err := s.Create(file, source, false); err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 // stampedFromTemplate reports whether the shim at path is what mallet would

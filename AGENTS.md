@@ -114,8 +114,25 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   which it names by the path it started from rather than the one it has now. A long-running server outlives the upgrade that replaced it, and its old
   binary has to stay: macOS's firewall drops connections to a program it can no longer read, and Windows will not
   delete a running program's file
-- `ui/` — deferred separators; see the comments in `ui.go`
+- `ui/` — deferred separators; see the comments in `ui.go`, and **Line
+  spacing** below
 - `lock/`, `home/` — small, and what their package comments say
+
+## Line spacing
+
+A blank line means the run has moved to the next step of its flow. Nothing else gets one.
+
+- Exactly one blank line before every prompt: never none, never two.
+- A prompt, the answer typed to it, and the output that answer lets through are one step: the output starts on the line
+  right below the answer.
+- Lines of one kind in a row (downloads, bins found, refresh lines, a script's output) run tight: no blank between them,
+  none after them.
+- A step never ends itself with a blank line; the step after it asks for one.
+- `-y` answers a prompt without showing it; the prompt's blank line still comes, where the prompt would have been.
+
+The rule is the same, word for word, in golie, ghpm, goup, shire, wut and wut-config.
+
+Here: `ui` is where every tool built on golie gets its blank lines. `Break` asks for one, deferred, so a run never starts or ends on one and two never stack. `Prompt`, `Menu`, `Confirm` and `Table` ask for their own before them and none after, so a menu shown again inside one prompt (a "show more") gets its blank too. A tool's `--yes` asks for the confirm's blank itself. Nothing in golie prints a blank outside `ui`.
 
 ## Testing on a real host
 

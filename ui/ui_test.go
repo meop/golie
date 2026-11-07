@@ -110,10 +110,9 @@ func TestBreak_LoopWithEmptyIteration(t *testing.T) {
 }
 
 // TestResolveLoop_BlankAfterPrompt exercises the deferred-Break primitives
-// directly (the next block's Break yields the blank after a prompt). Real
-// prompts now self-bracket via Prompt (see TestPrompt_BlankBeforeAndAfter), so
-// the trailing blank no longer depends on the caller — but the primitive
-// behavior this asserts still underpins it.
+// directly: the next package's block is a step of its own, so its Break
+// yields the blank after the answer. Within one step the output after a
+// prompt runs tight (see TestPrompt_BlankBeforeOnly).
 func TestResolveLoop_BlankAfterPrompt(t *testing.T) {
 	buf := capture(t, "1\n")
 	// package 1: header, then a menu + read
@@ -136,7 +135,9 @@ func TestResolveLoop_BlankAfterPrompt(t *testing.T) {
 	}
 }
 
-func TestPrompt_BlankBeforeAndAfter(t *testing.T) {
+// TestPrompt_BlankBeforeOnly: exactly one blank before a prompt, and the
+// output it lets through on the line right below the answer.
+func TestPrompt_BlankBeforeOnly(t *testing.T) {
 	buf := capture(t, "1\n")
 	Out("before")
 	_, _ = Prompt(func() (int, error) {
@@ -144,7 +145,7 @@ func TestPrompt_BlankBeforeAndAfter(t *testing.T) {
 		return ReadSingle("enter number")
 	})
 	Out("after")
-	want := "before\n\nchoose x:\n  1) a\n  2) b\nenter number [empty=1] (0=skip): \nafter\n"
+	want := "before\n\nchoose x:\n  1) a\n  2) b\nenter number [empty=1] (0=skip): after\n"
 	if got := buf.String(); got != want {
 		t.Errorf("got %q\nwant %q", got, want)
 	}
@@ -152,23 +153,45 @@ func TestPrompt_BlankBeforeAndAfter(t *testing.T) {
 
 func TestPrompt_NoBlankAtEdges(t *testing.T) {
 	buf := capture(t, "\n")
-	// Leading Break is a no-op (nothing emitted yet); trailing Break never
-	// flushes (no output follows) — so a prompt alone produces no stray blanks.
+	// The leading Break is a no-op with nothing emitted yet, and nothing
+	// follows the answer, so a prompt alone produces no stray blank.
 	_, _ = Prompt(func() (string, error) { return ReadLine("p: "), nil })
 	if got := buf.String(); got != "p: " {
 		t.Errorf("got %q, want %q", got, "p: ")
 	}
 }
 
-func TestPrompt_AdjacentCollapse(t *testing.T) {
+// TestPrompt_OneBlankBeforeTheNext: a second prompt right after the first
+// gets the one blank every prompt does, and never two.
+func TestPrompt_OneBlankBeforeTheNext(t *testing.T) {
 	buf := capture(t, "\n\n")
 	Out("a")
 	_, _ = Prompt(func() (string, error) { return ReadLine("p1: "), nil })
 	_, _ = Prompt(func() (string, error) { return ReadLine("p2: "), nil })
 	Out("b")
-	// One blank before p1; p1's trailing Break and p2's leading Break collapse
-	// to a single separator (the read-line newline), not a double blank.
-	want := "a\n\np1: \np2: \nb\n"
+	// On a terminal the answer's own newline ends each prompt line, so the
+	// "\n" before p2 is its one blank, and b runs tight under p2's answer.
+	want := "a\n\np1: \np2: b\n"
+	if got := buf.String(); got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+// TestMenu_ShownAgainGetsItsOneBlank: a menu shown again inside one Prompt,
+// as "show more" does, is a new prompt, so it gets the one blank every prompt
+// does; the first menu shares Prompt's, so it is not doubled.
+func TestMenu_ShownAgainGetsItsOneBlank(t *testing.T) {
+	buf := capture(t, "3\n1\n")
+	Out("before")
+	_, _ = Prompt(func() (int, error) {
+		Menu("uv", "choose bin(s)", []string{"uv", "uvx", "show more"})
+		_, _ = ReadSingle("enter number")
+		Menu("uv", "choose bin(s)", []string{"uv", "uvx", "uv-toolchain"})
+		return ReadSingle("enter number")
+	})
+	Out("after")
+	want := "before\n\nuv: choose bin(s)\n  1) uv\n  2) uvx\n  3) show more\nenter number [empty=1] (0=skip): " +
+		"\nuv: choose bin(s)\n  1) uv\n  2) uvx\n  3) uv-toolchain\nenter number [empty=1] (0=skip): after\n"
 	if got := buf.String(); got != want {
 		t.Errorf("got %q\nwant %q", got, want)
 	}

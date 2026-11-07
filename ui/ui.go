@@ -225,25 +225,27 @@ func ReadSingle(label string) (int, error) {
 	return idx, nil
 }
 
-// Prompt brackets an interactive prompt so it forms its own block: a blank line
-// before and after. Both are deferred Breaks, so a prompt at the very start or
-// end of output produces no stray blank, and two adjacent prompts collapse to a
-// single blank between them. The selection menus (asset/config) run through here,
-// so blank-line placement around them lives in exactly one place. Confirm is the
-// deliberate exception — it brackets with a leading Break only (see Confirm).
-// body performs the prompt's prints and reads —
-// including any multi-step reads — so the trailing blank lands after all of them.
+// Prompt runs an interactive prompt as the start of a step: exactly one blank
+// line before it, from a deferred Break, so a prompt at the very start of
+// output has none and a pending blank is never doubled. The answer and the
+// output it lets through are the same step, so nothing follows it: that output
+// starts on the line right below the answer, as it does under Confirm. The
+// selection menus (asset/config) run through here, so the blank before them
+// lives in exactly one place. body performs the prompt's prints and reads,
+// including any multi-step reads.
 func Prompt[T any](body func() (T, error)) (T, error) {
 	Break()
-	v, err := body()
-	Break()
-	return v, err
+	return body()
 }
 
 // Menu prints a selection menu: the header (prefixed with "<label>: " when label
 // is non-empty so the prompt names its package) followed by each pre-formatted
 // item as a numbered line. It is meant to be called at the top of a Prompt body.
+// Every menu is a prompt, so it brings its one blank line, which a menu shown
+// again inside the same Prompt (a "show more") needs and the first one shares
+// with Prompt's.
 func Menu(label, header string, items []string) {
+	Break()
 	if label != "" {
 		header = label + ": " + header
 	}
@@ -253,13 +255,11 @@ func Menu(label, header string, items []string) {
 	}
 }
 
-// Confirm prints "msg [[y]/n]: " with a blank line before it but NOT after, and
-// returns true for empty, "y", or "yes". Unlike the selection menus, a confirm
-// is the bail point of a gate: whatever follows (the operation's progress lines,
-// or `add`'s shim creation) is the work the user just opted into, so it nests
-// tight under the confirm with no separating blank. The leading Break still
-// flushes any pending separator before the prompt; it just doesn't request a
-// trailing one, so it does not route through Prompt.
+// Confirm prints "msg [[y]/n]: " with exactly one blank line before it and
+// none after, and returns true for empty, "y", or "yes". It is the bail point
+// of a gate: whatever follows (the operation's progress lines, or `add`'s shim
+// creation) is the work the user just opted into, the same step as the answer,
+// so it starts on the line right below it, as after any Prompt.
 //
 // With nobody to answer (see Interactive) it says so and returns false: a read
 // there hits EOF, and an empty answer is yes, so it would otherwise confirm on a

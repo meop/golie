@@ -55,7 +55,15 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   Either installs only what passed its checks — the archive against the
   release's manifest, the manifest against its signature when the tool names a
   key — and leaves the directory holding the release's files, its `.version`
-  written last, and nothing else beside what `Options.Keep` names
+  written last, and nothing else beside what `Options.Keep` names. `Label` is
+  how a vendored tool is named wherever it is printed (`vendor - gh`), and
+  `Said` how a refresh's outcome is, so every tool that vendors one reports it
+  in the same words: a tool prints those, never its own wording
+- `doctor/` — what a doctor command prints, the same in every tool: the title
+  and rule, a `[PASS]`/`[WARN]`/`[FAIL]` line a check, `Present` for what was
+  found (`present [version] — path`), `Vendored` for a vendored tool, labelled
+  and versioned as its refresh says it, and `Size` for a cache. A tool's own
+  checks go through these too, never a line of its own shape
 - `wedge/` — wedge's `vendored.Release` for a platform: its archive, the files
   kept, and the release key
 - `sig/` — `Verify` checks a detached OpenPGP signature; `ReleaseKey` is the key

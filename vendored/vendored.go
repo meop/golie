@@ -104,6 +104,27 @@ func (r Release) Refresh(ctx context.Context, dir string, opts Options) (from, t
 	return from, latest, nil
 }
 
+// Label is how a vendored tool is named in what a tool prints of it: its
+// refresh, its downloads and its doctor all say `vendor - gh`.
+func Label(name string) string { return "vendor - " + name }
+
+// Said is a refresh's outcome as every tool that vendors one prints it, in
+// the shape of the tools' other lines, label first and the detail in
+// brackets: `vendor - gh: at the latest [2.103.3]`,
+// `vendor - gh: installed [2.103.3]`, `vendor - gh: updated [2.100.0 → 2.103.3]`.
+// label is Label's for a vendored tool, or the caller's own for anything else
+// a refresh moves.
+func Said(label, from, to string) string {
+	switch {
+	case from == to:
+		return fmt.Sprintf("%s: at the latest [%s]", label, to)
+	case from == "":
+		return fmt.Sprintf("%s: installed [%s]", label, to)
+	default:
+		return fmt.Sprintf("%s: updated [%s → %s]", label, from, to)
+	}
+}
+
 // Latest is the version of the tool's newest release.
 func (r Release) Latest(ctx context.Context) (string, error) {
 	tag, err := fetch.LatestTag(ctx, r.ReleasesURL)

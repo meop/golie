@@ -157,6 +157,17 @@ func decorated(role, prefix, format string, args ...any) {
 	line(msg)
 }
 
+// Color is s in the color the resolver gives role, or s as it is when there
+// is none.
+func Color(role, s string) string {
+	if colorResolver != nil {
+		if fn := colorResolver(role); fn != nil {
+			return fn(s)
+		}
+	}
+	return s
+}
+
 // Warn, Fail, and Pass print a role-prefixed, optionally colored line.
 func Warn(format string, args ...any) { decorated("warn", "‼ ", format, args...) }
 func Fail(format string, args ...any) { decorated("fail", "✗ ", format, args...) }

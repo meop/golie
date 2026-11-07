@@ -115,10 +115,10 @@ func Label(name string) string { return "vendor - " + name }
 // label is Label's for a vendored tool, or the caller's own for anything else
 // a refresh moves.
 func Said(label, from, to string) string {
-	switch {
-	case from == to:
+	switch from {
+	case to:
 		return fmt.Sprintf("%s: at the latest [%s]", label, to)
-	case from == "":
+	case "":
 		return fmt.Sprintf("%s: installed [%s]", label, to)
 	default:
 		return fmt.Sprintf("%s: updated [%s → %s]", label, from, to)

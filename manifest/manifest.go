@@ -18,7 +18,10 @@ import (
 //
 // Pin is how far the install may move — "latest", "major", "minor" or
 // "fixed" — and Version is the release it is on now. What it is pinned to is
-// in its key ("fzf@14"), not here.
+// in its key ("fzf@14"), not here. Tag is that release's tag as its repo
+// spells it ("rust-v0.167.0" for codex's 0.167.0), so the same release can be
+// fetched again without turning the version back into a tag. An entry written
+// before tags were recorded has none.
 //
 // BinDeclined and FontDeclined are the discovered artifacts the user did not
 // select. With the selected ones they are everything discovered at install
@@ -27,6 +30,7 @@ import (
 type Entry struct {
 	Pin          string            `json:"pin"`
 	Version      string            `json:"version"`
+	Tag          string            `json:"tag,omitempty"`
 	Assets       []string          `json:"assets,omitempty"`
 	Bin          map[string]string `json:"bin,omitempty"`
 	Font         map[string]string `json:"font,omitempty"`

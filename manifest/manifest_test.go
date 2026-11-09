@@ -20,7 +20,7 @@ func TestSaveWritesTheContract(t *testing.T) {
 	path := filepath.Join(dir, "manifest.json")
 	m := New()
 	m.Repos["go"] = "go.dev/dl"
-	m.Extracts["go@1.26"] = Entry{Pin: PinMinor, Version: "1.26.9", Assets: []string{"a.tar.gz"}, Bin: map[string]string{"go@1.26": "bin/go"}}
+	m.Extracts["go@1.26"] = Entry{Pin: PinMinor, Version: "1.26.9", Tag: "go1.26.9", Assets: []string{"a.tar.gz"}, Bin: map[string]string{"go@1.26": "bin/go"}}
 	if err := Save(m, path); err != nil {
 		t.Fatal(err)
 	}
@@ -32,6 +32,7 @@ func TestSaveWritesTheContract(t *testing.T) {
     "go@1.26": {
       "pin": "minor",
       "version": "1.26.9",
+      "tag": "go1.26.9",
       "assets": [
         "a.tar.gz"
       ],
@@ -49,7 +50,7 @@ func TestSaveWritesTheContract(t *testing.T) {
 		t.Errorf("a save left %d files beside the manifest", len(entries)-1)
 	}
 	back, err := Load(path)
-	if err != nil || back.Extracts["go@1.26"].Bin["go@1.26"] != "bin/go" {
+	if err != nil || back.Extracts["go@1.26"].Bin["go@1.26"] != "bin/go" || back.Extracts["go@1.26"].Tag != "go1.26.9" {
 		t.Errorf("loaded %+v, %v", back, err)
 	}
 }

@@ -110,14 +110,14 @@ func Label(name string) string { return "vendor - " + name }
 
 // Said is a refresh's outcome as every tool that vendors one prints it, in
 // the shape of the tools' other lines, label first and the detail in
-// brackets: `vendor - gh: at the latest [2.103.3]`,
+// brackets: `vendor - gh: up to date [2.103.3]`,
 // `vendor - gh: installed [2.103.3]`, `vendor - gh: updated [2.100.0 → 2.103.3]`.
 // label is Label's for a vendored tool, or the caller's own for anything else
 // a refresh moves.
 func Said(label, from, to string) string {
 	switch from {
 	case to:
-		return fmt.Sprintf("%s: at the latest [%s]", label, to)
+		return fmt.Sprintf("%s: up to date [%s]", label, to)
 	case "":
 		return fmt.Sprintf("%s: installed [%s]", label, to)
 	default:

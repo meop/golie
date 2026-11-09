@@ -244,7 +244,7 @@ func TestARefreshThatFailsItsCheckLeavesWhatWasThere(t *testing.T) {
 
 func TestSaidNamesTheToolFirstAndTheVersionsInBrackets(t *testing.T) {
 	for _, c := range []struct{ from, to, want string }{
-		{"2.103.3", "2.103.3", "vendor - gh: at the latest [2.103.3]"},
+		{"2.103.3", "2.103.3", "vendor - gh: up to date [2.103.3]"},
 		{"", "2.103.3", "vendor - gh: installed [2.103.3]"},
 		{"2.100.0", "2.103.3", "vendor - gh: updated [2.100.0 → 2.103.3]"},
 	} {

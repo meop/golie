@@ -80,6 +80,38 @@ func TestStampedTargetWantsAWholeTrailer(t *testing.T) {
 	}
 }
 
+// signedMachO is a macOS shim as mallet signs one: a 64-bit Mach-O whose trailer ends where its code signature starts
+func signedMachO(target string) string {
+	trailer := stamped(target)[len("a template that names "+target):]
+	head := make([]byte, 32+16)
+	binary.LittleEndian.PutUint32(head, 0xfeedfacf)
+	binary.LittleEndian.PutUint32(head[16:], 1)
+	binary.LittleEndian.PutUint32(head[20:], 16)
+	binary.LittleEndian.PutUint32(head[32:], 0x1d)
+	binary.LittleEndian.PutUint32(head[36:], 16)
+	body := string(head) + "machine code" + trailer
+	binary.LittleEndian.PutUint32(head[40:], uint32(len(body)))
+	binary.LittleEndian.PutUint32(head[44:], 64)
+	return string(head) + "machine code" + trailer + strings.Repeat("\xfa", 64)
+}
+
+func TestStampedTargetReadsATrailerBeforeTheSignature(t *testing.T) {
+	s := stamper(t)
+	mac := s.Path("mac")
+	write(t, mac, signedMachO(filepath.Join(s.Owned, "pkg", "bin", "tool")))
+	if target, ok := StampedTarget(mac); !ok || target != filepath.Join(s.Owned, "pkg", "bin", "tool") {
+		t.Errorf("StampedTarget = %q, %v", target, ok)
+	}
+	if !s.IsShim(mac) {
+		t.Error("a signed macOS shim of ours is not recognised")
+	}
+	unsigned := s.Path("unsigned")
+	write(t, unsigned, signedMachO("/opt/tool")[:48]+"no trailer here")
+	if target, ok := StampedTarget(unsigned); ok {
+		t.Errorf("a Mach-O with no trailer: StampedTarget = %q", target)
+	}
+}
+
 func TestExeName(t *testing.T) {
 	want := "go1.26"
 	if runtime.GOOS == "windows" {

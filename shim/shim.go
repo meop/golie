@@ -55,6 +55,8 @@ func (s Stamper) IsShim(path string) bool {
 	return err == nil && !filepath.IsAbs(rel) && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
+// StampedTarget is the path a wedge shim runs. Its trailer is at the end of the file, or, in a macOS shim mallet
+// signed, right before the code signature, which covers it
 func StampedTarget(path string) (target string, ok bool) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -62,11 +64,24 @@ func StampedTarget(path string) (target string, ok bool) {
 	}
 	defer func() { _ = f.Close() }()
 	info, err := f.Stat()
-	if err != nil || info.IsDir() || info.Size() < 8 {
+	if err != nil || info.IsDir() {
+		return "", false
+	}
+	if target, ok := trailerEndingAt(f, info.Size()); ok {
+		return target, true
+	}
+	if end, ok := signatureOffset(f); ok {
+		return trailerEndingAt(f, end)
+	}
+	return "", false
+}
+
+func trailerEndingAt(f *os.File, end int64) (string, bool) {
+	if end < 8 {
 		return "", false
 	}
 	tail := make([]byte, 8)
-	if _, err := f.ReadAt(tail, info.Size()-8); err != nil {
+	if _, err := f.ReadAt(tail, end-8); err != nil {
 		return "", false
 	}
 	magic := string(tail[4:])
@@ -74,17 +89,46 @@ func StampedTarget(path string) (target string, ok bool) {
 		return "", false
 	}
 	n := int64(binary.LittleEndian.Uint32(tail[:4]))
-	if n == 0 || n+8 > info.Size() {
+	if n == 0 || n+8 > end {
 		return "", false
 	}
 	payload := make([]byte, n)
-	if _, err := f.ReadAt(payload, info.Size()-8-n); err != nil {
+	if _, err := f.ReadAt(payload, end-8-n); err != nil {
 		return "", false
 	}
 	if magic == "SHM2" {
 		payload, _, _ = bytes.Cut(payload, []byte{0})
 	}
 	return string(payload), true
+}
+
+const (
+	machoMagic64    = 0xfeedfacf
+	lcCodeSignature = 0x1d
+)
+
+// signatureOffset is where a 64-bit Mach-O's code signature starts, read from its load commands
+func signatureOffset(f *os.File) (int64, bool) {
+	head := make([]byte, 32)
+	if _, err := f.ReadAt(head, 0); err != nil || binary.LittleEndian.Uint32(head) != machoMagic64 {
+		return 0, false
+	}
+	ncmds := binary.LittleEndian.Uint32(head[16:])
+	cmds := make([]byte, binary.LittleEndian.Uint32(head[20:]))
+	if _, err := f.ReadAt(cmds, 32); err != nil {
+		return 0, false
+	}
+	for at, i := 0, uint32(0); i < ncmds && at+16 <= len(cmds); i++ {
+		cmd, size := binary.LittleEndian.Uint32(cmds[at:]), int(binary.LittleEndian.Uint32(cmds[at+4:]))
+		if cmd == lcCodeSignature {
+			return int64(binary.LittleEndian.Uint32(cmds[at+8:])), true
+		}
+		if size < 8 {
+			return 0, false
+		}
+		at += size
+	}
+	return 0, false
 }
 
 // Create stamps the shim file that runs source. mallet picks the wedge

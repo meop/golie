@@ -106,8 +106,7 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
 - `tidy/` — finds what the manifest does not account for (shims, extract
   dirs, cached downloads) and what it claims that is gone (broken installs),
   and removes either. No output and no prompts: the tool shows what a `Find`
-  returned and asks. Inside an install it keeps the version file as a file, not by
-  name: where names fold case (macOS, Windows) it can sit under a name an older layout left, as Go's `VERSION`.
+  returned and asks. Inside an install it keeps the version file and the version it names.
   A version a running program was started from is never removed: a prune keeps it with an `InUse`, and a tidy does
   not list it until the program has stopped. Nor is a shim a program runs from, as Windows keeps one a stamp set
   aside (`running.Held`)

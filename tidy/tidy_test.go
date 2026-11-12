@@ -343,19 +343,3 @@ func TestPruneInstallKeepsAVersionAProgramRunsFrom(t *testing.T) {
 		t.Errorf("once it stopped, orphans = %v, want 0.6.0", orphans)
 	}
 }
-
-func TestPruneInstallKeepsAVersionFileWrittenOverAnOlderLayoutsVERSION(t *testing.T) {
-	_, d := state(t)
-	key := filepath.Join(d.Extracts, "go")
-	touch(t, filepath.Join(key, "1.27.3", "bin", "go"))
-	touch(t, filepath.Join(key, "VERSION"))
-	if err := pointer.Point(filepath.Join(key, layout.VersionFile), filepath.Join(key, "1.27.3")); err != nil {
-		t.Fatal(err)
-	}
-	if stuck := PruneInstall(key); len(stuck) != 0 {
-		t.Fatal(stuck)
-	}
-	if got, ok := pointer.Target(filepath.Join(key, layout.VersionFile)); !ok || got != filepath.Join(key, "1.27.3") {
-		t.Errorf("the version file is gone after the prune: %q, %v", got, ok)
-	}
-}

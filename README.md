@@ -20,7 +20,7 @@ go get github.com/meop/golie
 | `sig` | Checks a release's checksum manifest against its detached signature, with the meop release key built in |
 | `shim` | Stamps and removes wedge shims, and tells a tool's own from anything else on `PATH` |
 | `upgrade` | A tool upgrading itself from its GitHub releases, over plain https and checked against their signature, and only the copy its own installer placed |
-| `vers` | Version strings, pins (`14`, `14.1`, `14.1.0`) and comparison |
+| `vers` | Version strings, and pins (`14`, `14.1`, `14.1.0`) with their level |
 | `manifest` | The record of what is installed: one JSON file, keyed `name` or `name@pin`, the same for every tool |
 | `layout` | Where a tool's state lives: `bin`, `vendor`, `extract/<key>/<version>` and its `version` file, `download/<source>/<version>` |
 | `pointer` | The `version` file a shim is stamped through, the same on every platform |

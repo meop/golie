@@ -82,7 +82,9 @@ A tool picks the release up with `go get github.com/meop/golie@v<VERSION>`.
   refused (`Check`, a `NotSelfInstalledError` the tool says in its own words)
   before anything is fetched, since whatever put it there is what upgrades it
 - `vers/` — `SplitJunk` / `Normalize` for tags with leading junk, and
-  `Constraint` for pins
+  `Constraint` / `ParseConstraint` for a pin and its level, which `manifest`
+  keys and `layout` download dirs are built on. Matching and ordering are each
+  tool's own: ghpm's semver rules, goup's go.dev names
 - `manifest/` — the record of what a tool installed, and the one file both
   tools keep: `repo` (package name → source) and `extract` (key → pin level,
   version, assets, and the shim → binary and font maps). Also what a key is
